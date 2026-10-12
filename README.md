@@ -7,7 +7,7 @@
 ## 📂 폴더 구조 (Directory Structure)
 
 ```text
-camera_manager_split/
+camera_manager
 │
 ├─ main.py                    # 프로그램 시작 및 전체 UI 조립
 ├─ config.py                  # 전역 색상 및 창 크기 등 설정
