@@ -22,7 +22,7 @@ class AppState:
         self.ftp_user = tk.StringVar(value="")
         self.ftp_password = tk.StringVar(value="")
 
-        self.storage_mode = tk.StringVar(value="local_ftp")
+        self.storage_mode = tk.StringVar(value="both")
 
         self.start_time_display = tk.StringVar(value="09:00:00")
         self.interval_display = tk.StringVar(value="10 분")

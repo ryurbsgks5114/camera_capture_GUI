@@ -7,7 +7,7 @@ from ui.common import create_panel
 def build(parent, app):
     def save():
         mode_text = {
-            "local_ftp": "로컬 + FTP 저장",
+            "both": "로컬 + FTP 저장",
             "local": "로컬 저장",
             "ftp": "FTP 저장"
         }
@@ -21,7 +21,7 @@ def build(parent, app):
     panel.pack(fill="x", pady=5)
 
     options = [
-        ("local_ftp", "로컬 + FTP 저장"),
+        ("both", "로컬 + FTP 저장"),
         ("local", "로컬 저장"),
         ("ftp", "FTP 저장")
     ]
