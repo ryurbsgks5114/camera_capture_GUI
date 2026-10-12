@@ -10,7 +10,7 @@
 camera_manager
 │
 ├─ main.py                    # 프로그램 시작 및 전체 UI 조립
-├─ config.py                  # 전역 색상 및 창 크기 등 설정
+├─ config.py                  # 전역 색상 및 창 크기 등 설정, 서버 연결 정보
 ├─ state.py                   # GUI 초기 상태값 관리
 │
 ├─ ui/                        # 화면 구성요소 패널 및 위젯 모듈
