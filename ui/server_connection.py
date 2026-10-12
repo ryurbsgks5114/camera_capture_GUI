@@ -43,12 +43,14 @@ def build(parent, app):
 
             if data.get("capture") == "running":
                 app.state.capture_status.set("촬영 중")
+                capture_text = "촬영 중"
             else:
                 app.state.capture_status.set("대기 중")
+                capture_text = "대기 중"
 
             app.refresh_system_status()
 
-            app.notify("서버 연결 성공\n촬영 상태: {}".format(data.get("capture")))
+            app.notify("서버 연결 성공\n촬영 상태: {}".format(capture_text))
 
         # API 통신 중 UI 멈춤 현상을 방지하기 위한 백그라운드 스레드 생성 및 실행
         threading.Thread(
