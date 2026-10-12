@@ -6,6 +6,7 @@
 
 ## 📂 폴더 구조 (Directory Structure)
 
+```text
 camera_manager_split/
 │
 ├─ main.py                    # 프로그램 시작 및 전체 UI 조립
