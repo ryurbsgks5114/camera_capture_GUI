@@ -37,7 +37,7 @@ def build(parent, app):
         password = app.state.ftp_password.get()
         remote_path = FTP_BASE_DIR
 
-        # 필수 입력값 누락 여부 검증
+        # FTP 설정값 검증
         valid, message, port = validate_ftp_settings(
             host=host,
             port_text=port_text,
