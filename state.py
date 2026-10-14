@@ -1,5 +1,12 @@
 import tkinter as tk
-from config import FTP_BASE_DIR, DEFAULT_STORAGE_MODE
+from config import (
+    FTP_BASE_DIR,
+    DEFAULT_STORAGE_MODE,
+    DEFAULT_INTERVAL_MINUTES,
+    DEFAULT_START_HOUR,
+    DEFAULT_START_MINUTE,
+    DEFAULT_START_SECOND
+)
 from pathlib import Path
 
 # ==========================================
@@ -16,10 +23,10 @@ class AppState:
         self.ftp_status = tk.StringVar(value="대기 중")
 
         # 촬영 설정 관련 변수
-        self.hour_var = tk.StringVar(value="09")
-        self.minute_var = tk.StringVar(value="00")
-        self.second_var = tk.StringVar(value="00")
-        self.interval_var = tk.StringVar(value="10")
+        self.hour_var = tk.StringVar(value=DEFAULT_START_HOUR)
+        self.minute_var = tk.StringVar(value=DEFAULT_START_MINUTE)
+        self.second_var = tk.StringVar(value=DEFAULT_START_SECOND)
+        self.interval_var = tk.StringVar(value=DEFAULT_INTERVAL_MINUTES)
 
         # 저장 경로 설정 관련 변수
         self.local_path = tk.StringVar(value=str(Path.home() / "Downloads"))

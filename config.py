@@ -35,3 +35,11 @@ FTP_BASE_DIR = "/test/camera"
 
 # 기본 저장 방식
 DEFAULT_STORAGE_MODE = "both"
+
+# 기본 촬영 시작 시간
+DEFAULT_START_HOUR = "09"
+DEFAULT_START_MINUTE = "00"
+DEFAULT_START_SECOND = "00"
+
+# 기본 촬영 간격 (분)
+DEFAULT_INTERVAL_MINUTES = 1
