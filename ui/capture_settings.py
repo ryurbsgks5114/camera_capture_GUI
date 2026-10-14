@@ -37,7 +37,7 @@ def build(parent, app):
 
     tk.Label(
         time_row,
-        ext=" : ",
+        text=" : ",
         bg=WHITE,
         fg=TEXT,
         font=("Malgun Gothic", 10, "bold")
@@ -45,8 +45,8 @@ def build(parent, app):
 
     minute_entry = ttk.Entry(
         time_row,
-        textvariable=app.state.minute_var
-         width=3,
+        textvariable=app.state.minute_var,
+        width=3,
         justify="center",
         validate="key",
         validatecommand=app.vcmd
