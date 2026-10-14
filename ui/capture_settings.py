@@ -95,14 +95,15 @@ def build(parent, app):
         font=("Malgun Gothic", 9)
     ).pack(side="left")
 
-    ttk.Entry(
+    interval_entry = ttk.Entry(
         interval_row,
         textvariable=app.state.interval_var,
         width=12,
         justify="right",
         validate="key",
         validatecommand=app.vcmd
-    ).pack(side="left")
+    )
+    interval_entry.pack(side="left")
 
     tk.Label(
         interval_row,
@@ -126,3 +127,19 @@ def build(parent, app):
     app.state.minute_var.trace_add("write", update)
     app.state.second_var.trace_add("write", update)
     app.state.interval_var.trace_add("write", update)
+
+    # 촬영 설정 입력란 잠금 및 해제 함수
+    def set_capture_settings_locked(locked):
+        # 잠김 상태(locked)에 따라 입력창 상태를 비활성화(disabled) 또는 활성화(normal)로 설정
+        new_state = "disabled" if locked else "normal"
+
+        # 시, 분, 초, 촬영 간격 입력창들의 상태 일괄 변경
+        hour_entry.configure(state=new_state)
+        minute_entry.configure(state=new_state)
+        second_entry.configure(state=new_state)
+        interval_entry.configure(state=new_state)
+
+    # 촬영 제어 화면의 일괄 잠금 관리 목록에 등록
+    app.capture_settings_lockers.append(
+        set_capture_settings_locked
+    )

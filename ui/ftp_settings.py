@@ -87,14 +87,40 @@ def build(parent, app):
     panel.pack(fill="x", pady=5)
 
     # FTP 설정 입력 필드 생성
-    create_field(panel, "FTP Host", app.state.ftp_host)
-    create_field(panel, "FTP Port", app.state.ftp_port)
-    create_field(panel, "FTP User", app.state.ftp_user)
-    create_field(panel, "FTP Password", app.state.ftp_password)
+    host_entry = create_field(panel, "FTP Host", app.state.ftp_host)
+    port_entry = create_field(panel, "FTP Port", app.state.ftp_port)
+    user_entry = create_field(panel, "FTP User", app.state.ftp_user)
+    password_entry = create_field(panel, "FTP Password", app.state.ftp_password)
+
+    # 촬영 중 잠글 FTP 입력창 목록
+    ftp_entries = [
+        host_entry,
+        port_entry,
+        user_entry,
+        password_entry
+    ]
 
     # '기본값 불러오기' 버튼 담을 프레임 생성
     button_area = tk.Frame(panel, bg=WHITE)
     button_area.pack(fill="x", padx=20, pady=12)
 
-    # '기본값 불러오기' 아웃라인 버튼 생성 및 우측 정렬 배치
-    create_outline_button(button_area, "⬇  기본값 불러오기", default_load).pack(side="right")
+    # '기본값 불러오기' 버튼 생성 및 우측 정렬 배치
+    default_button = create_outline_button(button_area, "⬇  기본값 불러오기", default_load)
+    default_button.pack(side="right")
+
+    # 촬영 중 FTP 설정 잠금 및 해제 함수
+    def set_ftp_settings_locked(locked):
+        # 잠김 상태(locked)에 따라 입력창 상태를 비활성화(disabled) 또는 활성화(normal)로 설정
+        new_state = "disabled" if locked else "normal"
+
+        # FTP 입력창 4개 상태 일괄 변경
+        for entry in ftp_entries:
+            entry.configure(state=new_state)
+
+        # '기본값 불러오기' 버튼 상태 변경
+        default_button.configure(state=new_state)
+
+    # 촬영 제어 화면에서 호출할 수 있도록 등록
+    app.capture_settings_lockers.append(
+        set_ftp_settings_locked
+    )

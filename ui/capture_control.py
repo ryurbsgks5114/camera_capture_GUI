@@ -96,6 +96,8 @@ def build(parent, app):
 
     # 상태 전환 함수(대기 중 -> 촬영 중)
     def show_running():
+        app.set_capture_settings_locked(True)
+        
         idle_card.pack_forget()
         running_card.pack(fill="both", expand=True)
         app.state.capture_status.set("촬영 중")
@@ -104,6 +106,8 @@ def build(parent, app):
 
     # 상태 전환 함수(촬영 중 -> 대기 중)
     def show_idle():
+        app.set_capture_settings_locked(False)
+
         running_card.pack_forget()
         idle_card.pack(fill="both", expand=True)
         app.state.capture_status.set("대기 중")

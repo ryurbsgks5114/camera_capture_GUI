@@ -107,6 +107,14 @@ def create_field(parent, label, variable, button_text=None, command=None):
 
     # 우측에 버튼이 필요한 경우 버튼 생성 및 배치
     if button_text:
-        create_outline_button(row, button_text, command).pack(side="left", padx=(8, 0))
+        action_button = create_outline_button(
+            row,
+            button_text,
+            command
+        )
+        action_button.pack(side="left", padx=(8, 0))
+        
+        # 나중에 버튼의 활성화/비활성화를 제어할 수 있도록 entry 객체에 바인딩
+        entry.action_button = action_button
 
     return entry

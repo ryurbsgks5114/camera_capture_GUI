@@ -48,7 +48,8 @@ def build(parent, app):
     panel.pack(fill="x", pady=5)
 
     # 로컬 저장 경로 필드 생성 및 읽기 전용 설정
-    local_entry = create_field(panel,
+    local_entry = create_field(
+        panel,
         "로컬 저장 경로",
         app.state.local_path,
         "📁 선택",
@@ -65,3 +66,17 @@ def build(parent, app):
         change_ftp_path
     )
     ftp_entry.configure(state="readonly")
+
+    # 저장 경로 선택 버튼 잠금 및 해제 함수
+    def set_save_path_locked(locked):
+        # 잠김 상태(locked)에 따라 버튼 상태를 비활성화(disabled) 또는 활성화(normal)로 설정
+        new_state = "disabled" if locked else "normal"
+
+        # 로컬 저장 경로 및 FTP 저장 경로 설정 버튼들의 상태 일괄 변경
+        local_entry.action_button.configure(state=new_state)
+        ftp_entry.action_button.configure(state=new_state)
+
+    # 촬영 제어 화면의 일괄 잠금 관리 목록에 등록
+    app.capture_settings_lockers.append(
+        set_save_path_locked
+    )
