@@ -1,5 +1,6 @@
 import tkinter as tk
 from config import WHITE, BORDER, TEXT, GREEN, GRAY, GRAY_LIGHT, RED, BLUE
+from services.capture_settings_validator import validate_capture_settings
 from ui.common import create_panel
 
 # ==========================================
@@ -99,7 +100,7 @@ def build(parent, app):
         running_card.pack(fill="both", expand=True)
         app.state.capture_status.set("촬영 중")
         app.refresh_system_status()
-        app.notify("촬영이 진행 중입니다.")
+        app.notify("촬영이 진행 중입니다.", GREEN)
 
     # 상태 전환 함수(촬영 중 -> 대기 중)
     def show_idle():
@@ -109,6 +110,23 @@ def build(parent, app):
         app.refresh_system_status()
         app.notify("촬영이 대기 상태입니다.")
 
+    # 촬영 시작 버튼 클릭 시 설정값 검증
+    def start_capture():
+        valid, message = validate_capture_settings(
+            hour_text=app.state.hour_var.get(),
+            minute_text=app.state.minute_var.get(),
+            second_text=app.state.second_var.get(),
+            interval_text=app.state.interval_var.get()
+        )
+
+        # 검증 실패 시 안내 메시지를 표시하고 촬영을 시작하지 않음
+        if not valid:
+            app.notify(message, RED)
+            return
+
+        # 검증을 통과한 경우에만 촬영 상태로 변경
+        show_running()
+
     # 버튼에 클릭 이벤트 핸들러 바인딩
-    idle_button.configure(command=show_running)
+    idle_button.configure(command=start_capture)
     running_button.configure(command=show_idle)
