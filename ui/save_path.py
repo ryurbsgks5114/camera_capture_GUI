@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 from config import WHITE, RED, TEXT, SUBTEXT, BORDER, BLUE
 from services.ftp_client import list_ftp_directories
+from services.ftp_validator import validate_ftp_settings
 from ui.common import create_panel, create_field
 
 # ==========================================
@@ -26,19 +27,16 @@ def build(parent, app):
         user = app.state.ftp_user.get().strip()
         password = app.state.ftp_password.get()
 
-        # 필수 입력값 누락 여부 검증
-        if not host or not port_text or not user or not password:
-            app.notify("FTP 설정 정보를 입력해 주세요.", RED)
-            return
+        # FTP 설정값 검증
+        valid, message, port = validate_ftp_settings(
+            host=host,
+            port_text=port_text,
+            user=user,
+            password=password
+        )
 
-        # Port 번호 유효성 검증
-        try:
-            port = int(port_text)
-
-            if not 1 <= port <= 65535:
-                raise ValueError
-        except ValueError:
-            app.notify("FTP Port는 1~65535 사이의 숫자로 입력해 주세요.", RED)
+        if not valid:
+            app.notify(message, RED)
             return
 
         # 검증 완료 후 FTP 폴더 브라우저 창 오픈
