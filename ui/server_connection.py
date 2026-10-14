@@ -1,6 +1,6 @@
 import threading
 import tkinter as tk
-from config import WHITE, BLUE, BLUE_LIGHT, RED
+from config import WHITE, BLUE, BLUE_LIGHT, RED, GREEN
 from services.api_client import get_server_status
 from ui.common import create_panel
 
@@ -50,7 +50,8 @@ def build(parent, app):
 
             app.refresh_system_status()
 
-            app.notify("서버 연결 성공\n촬영 상태: {}".format(capture_text))
+            app.notify("서버 연결 성공", GREEN)
+            app.notify("촬영 상태: {}".format(capture_text))
 
         # API 통신 중 UI 멈춤 현상을 방지하기 위한 백그라운드 스레드 생성 및 실행
         threading.Thread(
