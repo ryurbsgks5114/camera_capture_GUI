@@ -11,6 +11,7 @@ from config import (
     FTP_BASE_DIR
 )
 from services.ftp_client import test_ftp_connection
+from services.ftp_validator import validate_ftp_settings
 from ui.common import create_panel, create_field, create_outline_button
 
 # ==========================================
@@ -37,17 +38,15 @@ def build(parent, app):
         remote_path = FTP_BASE_DIR
 
         # 필수 입력값 누락 여부 검증
-        if not host or not port_text or not user or not password:
-            app.notify("FTP 설정 정보를 입력해 주세요.", RED)
-            return
+        valid, message, port = validate_ftp_settings(
+            host=host,
+            port_text=port_text,
+            user=user,
+            password=password
+        )
 
-        # Port 번호 유효성 검증
-        try:
-            port = int(port_text)
-            if not 1 <= port <= 65535:
-                raise ValueError
-        except ValueError:
-            app.notify("FTP Port는 1~65535 사이의 숫자로 입력해 주세요.", RED)
+        if not valid:
+            app.notify(message, RED)
             return
 
         # 연결 확인하는 초기 UI 세팅
