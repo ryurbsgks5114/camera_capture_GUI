@@ -1,6 +1,6 @@
 import tkinter as tk
 from config import WHITE, BORDER, TEXT, GREEN, GRAY, GRAY_LIGHT, RED, BLUE
-from services.capture_settings_validator import validate_capture_settings
+from services.capture_start_validator import validate_capture_start_settings
 from ui.common import create_panel
 
 # ==========================================
@@ -74,6 +74,7 @@ def build(parent, app):
             text=button_text,
             bg=button_bg,
             fg=WHITE,
+            disabledforeground=WHITE,
             activebackground=button_bg,
             activeforeground=WHITE,
             relief="flat",
@@ -94,8 +95,19 @@ def build(parent, app):
     running_card, running_button = create_capture_state("촬영 중", GREEN, "#EDF9F2", "■  촬영 중지", RED, True)
     running_card.pack_forget()
 
+    # ==========================================
+    # 내부 촬영 상태
+    # idle: 대기 중
+    # starting: 촬영 시작 처리 중
+    # running: 촬영 중
+    # ==========================================
+    capture_state = "idle"
+
     # 상태 전환 함수(대기 중 -> 촬영 중)
     def show_running():
+        nonlocal capture_state
+        capture_state = "running"
+
         app.set_capture_settings_locked(True)
         
         idle_card.pack_forget()
@@ -106,26 +118,63 @@ def build(parent, app):
 
     # 상태 전환 함수(촬영 중 -> 대기 중)
     def show_idle():
+        nonlocal capture_state
+        capture_state = "idle"
+
         app.set_capture_settings_locked(False)
 
         running_card.pack_forget()
         idle_card.pack(fill="both", expand=True)
+
+        # 버튼 상태 복구
+        idle_button.configure(
+            state=tk.NORMAL,
+            text="▶  촬영 시작"
+        )
+
         app.state.capture_status.set("대기 중")
         app.refresh_system_status()
         app.notify("촬영이 대기 상태입니다.")
 
     # 촬영 시작 버튼 클릭 시 설정값 검증
     def start_capture():
-        valid, message = validate_capture_settings(
+        nonlocal capture_state
+
+        # 촬영 시작 처리 중이거나 이미 촬영 중이면 중복 실행 방지
+        if capture_state != "idle":
+            return
+
+        # 이후 작업이 진행되는 동안 중복 클릭 차단
+        capture_state = "starting"
+        idle_button.configure(
+            state=tk.DISABLED,
+            text="촬영 시작 대기 중..."
+        )
+
+        valid, message = validate_capture_start_settings(
             hour_text=app.state.hour_var.get(),
             minute_text=app.state.minute_var.get(),
             second_text=app.state.second_var.get(),
-            interval_text=app.state.interval_var.get()
+            interval_text=app.state.interval_var.get(),
+            storage_mode=app.state.storage_mode.get(),
+            local_path=app.state.local_path.get(),
+            ftp_host=app.state.ftp_host.get(),
+            ftp_port=app.state.ftp_port.get(),
+            ftp_user=app.state.ftp_user.get(),
+            ftp_password=app.state.ftp_password.get(),
+            ftp_path=app.state.ftp_path.get()
         )
 
         # 검증 실패 시 안내 메시지를 표시하고 촬영을 시작하지 않음
         if not valid:
+            capture_state = "idle"
+            idle_button.configure(
+                state=tk.NORMAL,
+                text="▶  촬영 시작"
+            )
+
             app.notify(message, RED)
+
             return
 
         # 검증을 통과한 경우에만 촬영 상태로 변경
