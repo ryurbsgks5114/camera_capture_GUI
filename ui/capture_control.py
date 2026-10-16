@@ -1,6 +1,8 @@
 import tkinter as tk
+import threading
 from config import WHITE, BORDER, TEXT, GREEN, GRAY, GRAY_LIGHT, RED, BLUE
 from services.capture_start_validator import validate_capture_start_settings
+from services.api_client import start_capture as request_start_capture
 from ui.common import create_panel
 
 # ==========================================
@@ -114,7 +116,6 @@ def build(parent, app):
         running_card.pack(fill="both", expand=True)
         app.state.capture_status.set("촬영 중")
         app.refresh_system_status()
-        app.notify("촬영이 진행 중입니다.", GREEN)
 
     # 상태 전환 함수(촬영 중 -> 대기 중)
     def show_idle():
@@ -177,8 +178,55 @@ def build(parent, app):
 
             return
 
-        # 검증을 통과한 경우에만 촬영 상태로 변경
+        # GUI에서 검증을 통과하면 라즈베리파이 서버에 실제 촬영 시작 요청
+        payload = {
+            "start_time": "{}:{}:{}".format(
+                app.state.hour_var.get().strip(),
+                app.state.minute_var.get().strip(),
+                app.state.second_var.get().strip()
+            ),
+            "interval_minutes": int(app.state.interval_var.get().strip()),
+            "storage_mode": app.state.storage_mode.get()
+        }
+
+        # FTP 모드에서는 GUI의 FTP 설정을 서버 API에 함께 전달
+        if payload["storage_mode"] in ("ftp", "both"):
+            payload["ftp"] = {
+                "host": app.state.ftp_host.get().strip(),
+                "port": int(app.state.ftp_port.get().strip()),
+                "user": app.state.ftp_user.get().strip(),
+                "password": app.state.ftp_password.get(),
+                "base_dir": app.state.ftp_path.get().strip()
+            }
+
+        app.notify("라즈베리파이에 촬영 시작 요청을 보내는 중입니다...", BLUE)
+
+        # 네트워크 요청 중 GUI가 멈추지 않도록 별도 스레드에서 요청
+        def send_start_request():
+            try:
+                response = request_start_capture(payload)
+            except Exception as error:
+                app.root.after(0, lambda error=str(error): handle_start_failure(error))
+                return
+
+            app.root.after(0, lambda response=response: handle_start_success(response))
+
+        threading.Thread(target=send_start_request, daemon=True).start()
+
+    # API 요청 성공 시 서버 응답을 확인한 뒤 촬영 중 UI로 전환
+    def handle_start_success(response):
         show_running()
+        app.notify(response.get("message", "촬영을 시작했습니다."), GREEN)
+
+    # API 요청 실패 시 대기 상태로 복구
+    def handle_start_failure(message):
+        nonlocal capture_state
+        capture_state = "idle"
+        idle_button.configure(
+            state=tk.NORMAL,
+            text="▶  촬영 시작"
+        )
+        app.notify(message, RED)
 
     # 버튼에 클릭 이벤트 핸들러 바인딩
     idle_button.configure(command=start_capture)
