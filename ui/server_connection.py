@@ -38,7 +38,6 @@ def build(parent, app):
         def show_result(data, error_message):
             if error_message is not None:
                 app.state.server_status.set("연결 실패")
-                app.state.capture_status.set("연결 실패")
                 app.refresh_system_status()
 
                 app.notify("서버 연결 실패: {}".format(error_message), RED)
