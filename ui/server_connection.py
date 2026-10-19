@@ -8,7 +8,9 @@ from ui.common import create_panel
 # 서버 연결 UI 및 기능 함수
 # ==========================================
 def build(parent, app):
+    # ==========================================
     # '연결 테스트' 버튼 클릭 시 호출되는 함수
+    # ==========================================
     def connection_test():
         # 연결 확인하는 초기 UI 세팅
         app.state.server_status.set("연결 확인 중...")
@@ -16,7 +18,9 @@ def build(parent, app):
 
         app.notify("라즈베리파이 서버 연결을 확인하고 있습니다...")
 
+        # ==========================================
         # 백그라운드 스레드에서 서버로 상태 요청을 보내는 함수
+        # ==========================================
         def request_status():
             try:
                 data = get_server_status()
@@ -28,7 +32,9 @@ def build(parent, app):
             # Tkinter UI 업데이트는 반드시 메인 스레드에서 처리해야 하므로 after 사용
             app.root.after(0, lambda: show_result(data, error_message))
 
+        # ==========================================
         # 요청 결과에 따라 UI 상태를 갱신하고 알림을 띄우는 함수(메인 스레드 실행)
+        # ==========================================
         def show_result(data, error_message):
             if error_message is not None:
                 app.state.server_status.set("연결 실패")

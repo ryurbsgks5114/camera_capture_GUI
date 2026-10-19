@@ -29,11 +29,15 @@ def build(parent, app):
     notice_list = tk.Frame(canvas, bg=WHITE)
     window = canvas.create_window((0, 0), window=notice_list, anchor="nw")
 
+    # ==========================================
     # 캔버스 내부 내용 크기 변경 시 스크롤 영역을 갱신하는 함수
+    # ==========================================
     def update_scrollregion(event=None):
         canvas.configure(scrollregion=canvas.bbox("all"))
 
+    # ==========================================
     # 캔버스 크기 변경 시 내부 프레임의 너비를 캔버스 크기에 맞추는 함수
+    # ==========================================
     def resize_list(event):
         canvas.itemconfigure(window, width=event.width)
 
@@ -41,7 +45,9 @@ def build(parent, app):
     notice_list.bind("<Configure>", update_scrollregion)
     canvas.bind("<Configure>", resize_list)
 
+    # ==========================================
     # 새로운 알림 로그를 화면에 추가하고 가장 아래로 스크롤을 이동하는 함수
+    # ==========================================
     def add_notice(message, color=TEXT):
         # 현재 시각 포맷팅(시:분:초)
         now = datetime.now().strftime("%H:%M:%S")

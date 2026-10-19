@@ -6,7 +6,9 @@ from ui.common import create_panel
 # 저장 방식 설정 UI 및 기능 함수
 # ==========================================
 def build(parent, app):
+    # ==========================================
     # '저장' 버튼 클릭 시 호출되는 함수
+    # ==========================================
     def save():
         # 저장 방식 - 텍스트 맵핑
         mode_text = {
@@ -55,7 +57,9 @@ def build(parent, app):
         # 생성된 라디오 버튼을 관리 목록에 추가
         storage_radio_buttons.append(radio_button)
 
+    # ==========================================
     # 촬영 중 저장 방식 선택 잠금 및 해제 함수
+    # ==========================================
     def set_storage_mode_locked(locked):
         # 잠김 상태(locked)에 따라 라디오 버튼 상태를 비활성화(disabled) 또는 활성화(normal)로 설정
         new_state = "disabled" if locked else "normal"

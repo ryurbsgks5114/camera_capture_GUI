@@ -18,7 +18,9 @@ from ui.common import create_panel, create_field, create_outline_button
 # FTP 설정 UI 및 기능 함수
 # ==========================================
 def build(parent, app):
+    # ==========================================
     # '기본값 불러오기' 버튼 클릭 시 호출되는 함수
+    # ==========================================
     def default_load():
         # config에 정의된 기본 FTP 설정값들을 입력 필드에 세팅
         app.state.ftp_host.set(FTP_HOST)
@@ -28,7 +30,9 @@ def build(parent, app):
 
         app.notify("FTP 기본값을 불러왔습니다.")
 
+    # ==========================================
     # '연결 테스트' 버튼 클릭 시 호출되는 함수
+    # ==========================================
     def connection_test():
         # 입력된 FTP 설정값 가져오기
         host = app.state.ftp_host.get().strip()
@@ -54,7 +58,9 @@ def build(parent, app):
         app.refresh_system_status()
         app.notify("FTP 서버 연결을 확인하고 있습니다...")
 
+        # ==========================================
         # 백그라운드 스레드에서 실행될 FTP 연결 테스트 작업 함수
+        # ==========================================
         def worker():
             success, message = test_ftp_connection(
                 host=host,
@@ -65,7 +71,9 @@ def build(parent, app):
                 timeout=5
             )
 
+            # ==========================================
             # 테스트 결과에 따라 UI 상태를 갱신하고 알림을 띄우는 함수
+            # ==========================================
             def finish():
                 if success:
                     app.state.ftp_status.set("연결됨")
@@ -108,7 +116,9 @@ def build(parent, app):
     default_button = create_outline_button(button_area, "⬇  기본값 불러오기", default_load)
     default_button.pack(side="right")
 
+    # ==========================================
     # 촬영 중 FTP 설정 잠금 및 해제 함수
+    # ==========================================
     def set_ftp_settings_locked(locked):
         # 잠김 상태(locked)에 따라 입력창 상태를 비활성화(disabled) 또는 활성화(normal)로 설정
         new_state = "disabled" if locked else "normal"

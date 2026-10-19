@@ -5,7 +5,9 @@ from tkinter import ttk
 from config import WHITE, RED, TEXT, SUBTEXT, BORDER, BLUE
 from services.ftp_client import list_ftp_directories 
     
+# ==========================================    
 # FTP 서버의 디렉토리를 탐색하고 선택할 수 있는 팝업 창을 생성하는 함수
+# ==========================================
 def open_ftp_browser(app, host, port, user, password):
     # FTP 서버 폴더 선택용 모달 창 설정
     dialog = tk.Toplevel(app.root)
@@ -63,14 +65,18 @@ def open_ftp_browser(app, host, port, user, password):
     busy = {"value": False}
     path_is_valid = {"value": False}
 
+    # ==========================================
     # 통신 중복 방지를 위한 버튼 활성화/비활성화 제어 함수
+    # ==========================================
     def set_busy(value):
         busy["value"] = value
 
         for button in (up_button, refresh_button, select_button):
             button.configure(state="disabled" if value else "normal")
 
+    # ==========================================
     # 지정된 경로의 FTP 폴더 목록을 비동기로 불러와 리스트박스에 렌더링하는 함수
+    # ==========================================
     def show_listing(path, allow_home_fallback=False):
         if busy["value"]:
             return
@@ -134,7 +140,9 @@ def open_ftp_browser(app, host, port, user, password):
 
         threading.Thread(target=worker, daemon=True).start()
 
+    # ==========================================
     # 모달 창 항목 더블 클릭 또는 Enter 입력 시 해당 폴더로 이동하는 함수
+    # ==========================================
     def navigate_selected(event=None):
         selection = listbox.curselection()
 
@@ -161,7 +169,9 @@ def open_ftp_browser(app, host, port, user, password):
 
             show_listing(next_path)
 
+    # ==========================================
     # '이 폴더 선택' 버튼 클릭 시 현재 경로를 최종 선택하고 창을 닫는 함수
+    # ==========================================
     def select_current_folder():
         if busy["value"]:
             return

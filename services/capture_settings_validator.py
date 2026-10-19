@@ -1,4 +1,6 @@
+# ==========================================
 # 사용자 입력 촬영 설정값(시, 분, 초, 촬영 간격) 검증 함수
+# ==========================================
 def validate_capture_settings(hour_text, minute_text, second_text, interval_text):
     # 촬영 시작 시간의 시·분·초 입력값 검증 항목 정의
     time_fields = [

@@ -2,7 +2,9 @@ from services.capture_settings_validator import validate_capture_settings
 from services.ftp_validator import validate_ftp_settings
 from services.path_validator import validate_local_path
 
+# ==========================================
 # 촬영 시작 전에 GUI에서 수행할 전체 입력값 검증
+# ==========================================
 def validate_capture_start_settings(
     hour_text,
     minute_text,

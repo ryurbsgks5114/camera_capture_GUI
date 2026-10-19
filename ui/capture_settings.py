@@ -113,7 +113,9 @@ def build(parent, app):
         font=("Malgun Gothic", 10)
     ).pack(side="left")
 
+    # ==========================================
     # 입력값이 변경될 때마다 실시간으로 랜더링하는 함수
+    # ==========================================
     def update(*args):
         app.state.start_time_display.set(
             app.state.hour_var.get() + ":" +
@@ -128,7 +130,9 @@ def build(parent, app):
     app.state.second_var.trace_add("write", update)
     app.state.interval_var.trace_add("write", update)
 
+    # ==========================================
     # 촬영 설정 입력란 잠금 및 해제 함수
+    # ==========================================
     def set_capture_settings_locked(locked):
         # 잠김 상태(locked)에 따라 입력창 상태를 비활성화(disabled) 또는 활성화(normal)로 설정
         new_state = "disabled" if locked else "normal"

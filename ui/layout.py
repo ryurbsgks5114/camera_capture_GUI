@@ -30,7 +30,9 @@ def build_header(root):
     )
     datetime_label.pack(side="right", padx=24)
 
+    # ==========================================
     # 현재 날짜와 시간을 계산하여 1분 주기로 재호출하는 함수
+    # ==========================================
     def update_datetime():
         now = datetime.now()
         weekdays = ["월", "화", "수", "목", "금", "토", "일"]

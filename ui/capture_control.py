@@ -18,7 +18,9 @@ def build(parent, app):
     body.pack(fill="both", expand=True, padx=18, pady=14)
     app.control_body = body
 
+    # ==========================================
     # 촬영 상태별 UI 생성 함수
+    # ==========================================
     def create_capture_state(title, status_color, card_bg, button_text, button_bg, show_details):
         # 프레임 생성
         card = tk.Frame(body, bg=card_bg, highlightbackground=BORDER, highlightthickness=1)
@@ -99,31 +101,39 @@ def build(parent, app):
 
     # ==========================================
     # 내부 촬영 상태
-    # idle: 대기 중
-    # starting: 촬영 시작 처리 중
-    # running: 촬영 중
+    # - idle: 대기 중
+    # - starting: 촬영 시작 처리 중
+    # - running: 촬영 중
     # ==========================================
     capture_state = "idle"
 
+    # ==========================================
     # 상태 전환 함수(대기 중 -> 촬영 중)
+    # ==========================================
     def show_running():
         nonlocal capture_state
         capture_state = "running"
 
+        # 촬영 설정 입력 필드 잠금 처리
         app.set_capture_settings_locked(True)
         
+        # 대기 중 버튼 숨기고 촬영 중 버튼 표시
         idle_card.pack_forget()
         running_card.pack(fill="both", expand=True)
         app.state.capture_status.set("촬영 중")
         app.refresh_system_status()
 
+    # ==========================================
     # 상태 전환 함수(촬영 중 -> 대기 중)
+    # ==========================================
     def show_idle():
         nonlocal capture_state
         capture_state = "idle"
 
+        # 촬영 설정 입력 필드 잠금 해제
         app.set_capture_settings_locked(False)
 
+        # 촬영 중 버튼 숨기고 대기 중 버튼 표시
         running_card.pack_forget()
         idle_card.pack(fill="both", expand=True)
 
@@ -137,7 +147,9 @@ def build(parent, app):
         app.refresh_system_status()
         app.notify("촬영이 대기 상태입니다.")
 
+    # ==========================================
     # 촬영 시작 버튼 클릭 시 설정값 검증
+    # ==========================================
     def start_capture():
         nonlocal capture_state
 
@@ -152,6 +164,7 @@ def build(parent, app):
             text="촬영 시작 대기 중..."
         )
 
+        # GUI 입력값 및 설정값 유효성 검증 수행
         valid, message = validate_capture_start_settings(
             hour_text=app.state.hour_var.get(),
             minute_text=app.state.minute_var.get(),
@@ -206,19 +219,27 @@ def build(parent, app):
             try:
                 response = request_start_capture(payload)
             except Exception as error:
+                # 에러 발생 시 메인 스레드에서 실패 핸들러 호출
                 app.root.after(0, lambda error=str(error): handle_start_failure(error))
+
                 return
 
+            # 성공 시 메인 스레드에서 성공 핸들러 호출
             app.root.after(0, lambda response=response: handle_start_success(response))
 
+        # 데몬 스레드로 비동기 네트워크 요청 실행
         threading.Thread(target=send_start_request, daemon=True).start()
 
-    # API 요청 성공 시 서버 응답을 확인한 뒤 촬영 중 UI로 전환
+    # ==========================================
+    # API 요청 성공 콜백 함수: 촬영 중 UI로 전환
+    # ==========================================
     def handle_start_success(response):
         show_running()
         app.notify(response.get("message", "촬영을 시작했습니다."), GREEN)
 
-    # API 요청 실패 시 대기 상태로 복구
+    # ==========================================
+    # API 요청 실패 콜백 함수: 대기 상태로 복구 및 에러 알림
+    # ==========================================
     def handle_start_failure(message):
         nonlocal capture_state
         capture_state = "idle"

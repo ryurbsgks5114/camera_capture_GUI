@@ -2,7 +2,9 @@ import tkinter as tk
 from config import WHITE, TEXT, GREEN, GRAY, RED
 from ui.common import create_panel
 
+# ==========================================
 # 상태에 따라 해당하는 색상 코드를 반환하는 함수
+# ==========================================
 def get_status_color(status):
     if status in ("연결됨", "촬영 중"):
         return GREEN
@@ -28,7 +30,9 @@ def build(parent, app):
 
     return panel
 
+# ==========================================
 # 시스템 상태 정보를 최신 값으로 갱신하여 다시 렌더링 하는 함수
+# ==========================================
 def refresh(app):
     # 기존에 그려져 있던 하위 위젯들을 모두 초기화
     for widget in app.system_body.winfo_children():

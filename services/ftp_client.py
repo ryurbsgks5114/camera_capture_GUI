@@ -37,6 +37,7 @@ def test_ftp_connection(host, port, user, password, remote_path, timeout=5):
         # 원격 경로가 지정되어 있는 경우 해당 경로로 이동
         if remote_path:
             ftp.cwd(remote_path)
+        
         return True, "FTP 서버 연결에 성공했습니다."
     except (socket.gaierror, socket.timeout, TimeoutError,
             ConnectionRefusedError, OSError, *all_errors) as exc:
@@ -103,8 +104,7 @@ def list_ftp_directories(host, port, user, password, remote_path="", timeout=5):
         directories = sorted(set(directories), key=str.lower)
 
         return True, "FTP 폴더 목록을 불러왔습니다.", current_path, directories
-    except (socket.gaierror, socket.timeout, TimeoutError,
-            ConnectionRefusedError, OSError, *all_errors) as exc:
+    except (socket.gaierror, socket.timeout, TimeoutError, ConnectionRefusedError, OSError, *all_errors) as exc:
         return False, _error_message(exc, "FTP 폴더 조회"), "", []
     finally:
         # 연결 종료 시 안전하게 리소스 해제
