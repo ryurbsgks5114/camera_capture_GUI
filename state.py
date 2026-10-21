@@ -42,5 +42,11 @@ class AppState:
         self.storage_mode = tk.StringVar(value=DEFAULT_STORAGE_MODE)
 
         # 촬영 제어 관련 변수
-        self.start_time_display = tk.StringVar(value="09:00:00")
-        self.interval_display = tk.StringVar(value="10 분")
+        self.start_time_display = tk.StringVar(
+            value="{:02d}:{:02d}:{:02d}".format(
+                int(DEFAULT_START_HOUR),
+                int(DEFAULT_START_MINUTE),
+                int(DEFAULT_START_SECOND)
+            )
+        )
+        self.interval_display = tk.StringVar(value="{} 분".format(DEFAULT_INTERVAL_MINUTES))
