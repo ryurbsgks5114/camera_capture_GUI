@@ -116,10 +116,16 @@ def build(parent, app):
 
         # 촬영 설정 입력 필드 잠금 처리
         app.set_capture_settings_locked(True)
-        
+
         # 대기 중 버튼 숨기고 촬영 중 버튼 표시
         idle_card.pack_forget()
         running_card.pack(fill="both", expand=True)
+
+        # 시스템 상태 업데이트
+        if app.state.storage_mode.get() in ("ftp", "both"):
+            app.state.ftp_status.set("연결됨")
+
+        app.state.server_status.set("연결됨")
         app.state.capture_status.set("촬영 중")
         app.refresh_system_status()
 
@@ -243,10 +249,26 @@ def build(parent, app):
     def handle_start_failure(message):
         nonlocal capture_state
         capture_state = "idle"
+        
         idle_button.configure(
             state=tk.NORMAL,
             text="▶  촬영 시작"
         )
+
+        # 발생한 에러 메시지가 서버 연결 실패 관련인지 확인
+        server_unreachable = message.startswith("서버에 연결할 수 없습니다.")
+
+        # 서버 연결 실패 여부에 따라 시스템 상태 업데이트
+        if server_unreachable:
+            app.state.server_status.set("연결 실패")
+        else:
+            app.state.server_status.set("연결됨")
+
+            # FTP 저장 모드이면서 에러 메시지에 FTP 관련 내용이 포함된 경우 FTP 연결 상태도 연결 실패로 변경
+            if (app.state.storage_mode.get() in ("ftp", "both") and "FTP" in message.upper()):
+                app.state.ftp_status.set("연결 실패")
+
+        app.refresh_system_status()
         app.notify(message, RED)
 
     # 버튼에 클릭 이벤트 핸들러 바인딩
