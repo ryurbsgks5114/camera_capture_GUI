@@ -2,7 +2,10 @@ import tkinter as tk
 import threading
 from config import WHITE, BORDER, TEXT, GREEN, GRAY, GRAY_LIGHT, RED, BLUE
 from services.capture_start_validator import validate_capture_start_settings
-from services.api_client import start_capture as request_start_capture
+from services.api_client import (
+    start_capture as request_start_capture,
+    stop_capture as request_stop_capture,
+)
 from ui.common import create_panel
 
 # ==========================================
@@ -104,6 +107,7 @@ def build(parent, app):
     # - idle: 대기 중
     # - starting: 촬영 시작 처리 중
     # - running: 촬영 중
+    # - stopping: 촬영 중지 처리 중
     # ==========================================
     capture_state = "idle"
 
@@ -120,6 +124,12 @@ def build(parent, app):
         # 대기 중 버튼 숨기고 촬영 중 버튼 표시
         idle_card.pack_forget()
         running_card.pack(fill="both", expand=True)
+
+        # 촬영 중지 버튼 상태 초기화
+        running_button.configure(
+            state=tk.NORMAL,
+            text="■  촬영 중지"
+        )
 
         # 시스템 상태 업데이트
         if app.state.storage_mode.get() in ("ftp", "both"):
@@ -151,15 +161,14 @@ def build(parent, app):
 
         app.state.capture_status.set("대기 중")
         app.refresh_system_status()
-        app.notify("촬영이 대기 상태입니다.")
 
     # ==========================================
-    # 촬영 시작 버튼 클릭 시 설정값 검증
+    # 촬영 설정값 검증 및 촬영 시작 요청 함수
     # ==========================================
     def start_capture():
         nonlocal capture_state
 
-        # 촬영 시작 처리 중이거나 이미 촬영 중이면 중복 실행 방지
+        # 대기 중이 아닌 경우 중복 실행 방지
         if capture_state != "idle":
             return
 
@@ -220,7 +229,9 @@ def build(parent, app):
 
         app.notify("라즈베리파이에 촬영 시작 요청을 보내는 중입니다...", BLUE)
 
+        # ==========================================
         # 네트워크 요청 중 GUI가 멈추지 않도록 별도 스레드에서 요청
+        # ==========================================
         def send_start_request():
             try:
                 response = request_start_capture(payload)
@@ -271,6 +282,64 @@ def build(parent, app):
         app.refresh_system_status()
         app.notify(message, RED)
 
+    # ==========================================
+    # 촬영 중지 요청 함수
+    # ==========================================
+    def stop_capture():
+        nonlocal capture_state
+
+        # 촬영 중이 아닌 경우 중복 실행 방지
+        if capture_state != "running":
+            return
+
+        # 이후 작업이 진행되는 동안 중복 클릭 차단
+        capture_state = "stopping"
+        running_button.configure(
+            state=tk.DISABLED,
+            text="중지 요청 중..."
+        )
+
+        app.notify("라즈베리파이에 촬영 중지 요청을 보내는 중입니다...", BLUE)
+
+        # ==========================================
+        # 네트워크 요청 중 GUI가 멈추지 않도록 별도 스레드에서 요청
+        # ==========================================
+        def send_stop_request():
+            try:
+                response = request_stop_capture()
+            except Exception as error:
+                # 에러 발생 시 메인 스레드에서 실패 핸들러 호출
+                app.root.after(0, lambda error=str(error): handle_stop_failure(error))
+                
+                return
+
+            # 성공 시 메인 스레드에서 성공 핸들러 호출
+            app.root.after(0, lambda response=response: handle_stop_success(response))
+
+        # 데몬 스레드로 비동기 네트워크 요청 실행
+        threading.Thread(target=send_stop_request, daemon=True).start()
+
+    # ==========================================
+    # API 요청 성공 콜백 함수: 대기 중 UI로 전환
+    # ==========================================
+    def handle_stop_success(response):
+        show_idle()
+        app.notify(response.get("message", "촬영을 중지했습니다."), GREEN)
+
+    # ==========================================
+    # API 요청 실패 콜백 함수: 촬영 상태로 복구 및 에러 알림
+    # ==========================================
+    def handle_stop_failure(message):
+        nonlocal capture_state
+        capture_state = "running"
+
+        running_button.configure(
+            state=tk.NORMAL,
+            text="■  촬영 중지"
+        )
+
+        app.notify(message, RED)
+
     # 버튼에 클릭 이벤트 핸들러 바인딩
     idle_button.configure(command=start_capture)
-    running_button.configure(command=show_idle)
+    running_button.configure(command=stop_capture)
