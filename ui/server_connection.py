@@ -16,7 +16,7 @@ def build(parent, app):
         app.state.server_status.set("연결 확인 중...")
         app.refresh_system_status()
 
-        app.notify("라즈베리파이 서버 연결을 확인하고 있습니다...")
+        app.notify("라즈베리파이 서버 연결을 확인하고 있습니다...", BLUE)
 
         # ==========================================
         # 백그라운드 스레드에서 서버로 상태 요청을 보내는 함수

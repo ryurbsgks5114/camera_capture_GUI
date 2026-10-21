@@ -1,6 +1,7 @@
 import threading
 import tkinter as tk
 from config import (
+    BLUE,
     WHITE,
     GREEN,
     RED,
@@ -56,7 +57,7 @@ def build(parent, app):
         # 연결 확인하는 초기 UI 세팅
         app.state.ftp_status.set("연결 확인 중...")
         app.refresh_system_status()
-        app.notify("FTP 서버 연결을 확인하고 있습니다...")
+        app.notify("FTP 서버 연결을 확인하고 있습니다...", BLUE)
 
         # ==========================================
         # 백그라운드 스레드에서 실행될 FTP 연결 테스트 작업 함수
