@@ -67,3 +67,14 @@ def start_capture(payload):
         raise RuntimeError(data.get("message", "촬영 시작 요청에 실패했습니다."))
 
     return data
+
+# ==========================================
+# 촬영 중지 요청 함수
+# ==========================================
+def stop_capture():
+    status_code, data = _request_json("/stop", method="POST")
+
+    if status_code < 200 or status_code >= 300 or not data.get("success", False):
+        raise RuntimeError("촬영 중지 요청에 실패했습니다.")
+
+    return data
