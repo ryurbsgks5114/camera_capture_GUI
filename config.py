@@ -43,3 +43,6 @@ DEFAULT_START_SECOND = "00"
 
 # 기본 촬영 간격 (분)
 DEFAULT_INTERVAL_MINUTES = 1
+
+# WebSocket 재접속 대기 시간(초)
+WEBSOCKET_RECONNECT_DELAY = 3

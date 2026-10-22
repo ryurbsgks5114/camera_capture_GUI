@@ -1,11 +1,12 @@
 import tkinter as tk
-from config import APP_TITLE, WINDOW_GEOMETRY, WINDOW_MIN_SIZE, BG
+from config import APP_TITLE, WINDOW_GEOMETRY, WINDOW_MIN_SIZE, BG, GREEN, RED
 from state import AppState
 from ui.common import configure_style
 from ui.layout import build_header, build_main
 from ui import system_status, server_connection, ftp_settings, save_path
 from ui import capture_settings, storage_mode, capture_control
 from ui import recent_photos, notifications
+from services.websocket_client import WebSocketClient
 
 # ==========================================
 # GUI 애플리케이션 메인 클래스
@@ -50,6 +51,60 @@ class CameraManagerApp:
         recent_photos.build(right, self)
         notifications.build(right, self)
 
+        # WebSocket 실시간 알림 클라이언트 초기화 및 시작
+        self.websocket_client = WebSocketClient(
+            root=self.root,
+            on_status=self._on_websocket_status,
+            on_test_event=self._on_websocket_event
+        )
+        self.websocket_client.start()
+
+    # ==========================================
+    # WebSocket 연결 상태 변경 시 호출되는 콜백 함수
+    # ==========================================
+    def _on_websocket_status(self, status):
+        previous = self.state.websocket_status.get()
+
+        self.state.websocket_status.set(status)
+        self.refresh_system_status()
+
+        # 상태가 바뀔 때만 알림을 표시
+        if status == previous:
+            return
+
+        # 연결 상태에 따른 알림 메시지 처리
+        if status == "연결됨":
+            self.notify("WebSocket 서버에 연결되었습니다.", GREEN)
+        elif status == "연결 끊김":
+            self.notify("WebSocket 연결이 끊겼습니다. 재연결을 시도합니다.", RED)
+        elif status == "연결 실패":
+            self.notify("WebSocket 연결에 실패했습니다. 서버와 네트워크를 확인해 주세요.", RED)
+
+    # ==========================================
+    # WebSocket을 통해 이벤트 수신 시 호출되는 콜백 함수
+    # ==========================================
+    def _on_websocket_event(self, data):
+        # 수신된 데이터가 딕셔너리 형태가 아닌 경우 무시
+        if not isinstance(data, dict):
+            return
+
+        event_type = data.get("type")
+
+        # 이벤트 유형에 따른 메시지 알림
+        if event_type == "connection_test":
+            self.notify(data.get("message", "WebSocket 테스트 이벤트를 수신했습니다."), GREEN)
+        elif event_type == "connection_error":
+            self.notify(data.get("message", "WebSocket 연결 오류"), RED)
+
+    # ==========================================
+    # 애플리케이션 종료 처리 메서드
+    # ==========================================
+    def close(self):
+        # 이번 단계에서는 WebSocket 연결만 정리
+        # 촬영 중지 API 호출을 포함한 종료 처리는 다음 단계에서 추가예정
+        self.websocket_client.stop()
+        self.root.destroy()
+
     # 입력값 유효성 검증 정적 메서드
     @staticmethod
     def validate_number(value):
@@ -70,7 +125,8 @@ def main():
     root.configure(bg=BG)
 
     # 애플리케이션 인스턴스 생성 및 이벤트 루프 실행
-    CameraManagerApp(root)
+    app = CameraManagerApp(root)
+    root.protocol("WM_DELETE_WINDOW", app.close)
     root.mainloop()
 
 if __name__ == "__main__":

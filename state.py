@@ -21,6 +21,7 @@ class AppState:
         self.server_status = tk.StringVar(value="대기 중")
         self.capture_status = tk.StringVar(value="대기 중")
         self.ftp_status = tk.StringVar(value="대기 중")
+        self.websocket_status = tk.StringVar(value="연결 중")
 
         # 촬영 설정 관련 변수
         self.hour_var = tk.StringVar(value=DEFAULT_START_HOUR)

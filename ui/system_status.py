@@ -41,6 +41,7 @@ def refresh(app):
     # 표시할 시스템 상태 항목과 현재 상태값 매핑 목록
     statuses = [
         ("서버 연결 상태", app.state.server_status.get()),
+        ("WebSocket 상태", app.state.websocket_status.get()),
         ("촬영 상태", app.state.capture_status.get()),
         ("FTP 연결 상태", app.state.ftp_status.get())
     ]
