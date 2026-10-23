@@ -46,6 +46,13 @@ class WebSocketClient:
         def handle_ws_test(data):
             self._dispatch_event(data)
 
+        # ==========================================
+        # 서버에서 실제 사진 촬영 완료 이벤트를 수신하는 핸들러
+        # ==========================================
+        @self.client.on("photo_saved")
+        def handle_photo_saved(data):
+            self._dispatch_event(data)
+
     # ==========================================
     # Tkinter 메인 스레드 안전하게 콜백을 호출하기 위한 헬퍼 함수
     # ==========================================

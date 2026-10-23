@@ -95,6 +95,10 @@ class CameraManagerApp:
             self.notify(data.get("message", "WebSocket 테스트 이벤트를 수신했습니다."), GREEN)
         elif event_type == "connection_error":
             self.notify(data.get("message", "WebSocket 연결 오류"), RED)
+        elif event_type == "photo_saved":
+            filename = data.get("filename", "파일명 없음")
+            view = data.get("view", "unknown")
+            self.notify("사진 촬영 완료: {} ({})".format(filename, view), GREEN)
 
     # ==========================================
     # 애플리케이션 종료 처리 메서드
