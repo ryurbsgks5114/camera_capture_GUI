@@ -98,25 +98,32 @@ class CameraManagerApp:
         elif event_type == "connection_error":
             self.notify(data.get("message", "WebSocket 연결 오류"), RED)
         elif event_type == "photo_saved":
-            # 서버 이벤트 데이터에서 사진 파일명과 촬영 뷰 정보 추출
+            # 서버 이벤트 데이터에서 사진 파일명 추출
             filename = data.get("filename", "")
-            view = data.get("view", "unknown")
 
             # 사진 파일명이 전달되지 않은 경우 다운로드를 진행하지 않음
             if not filename:
-                self.notify("사진 촬영 이벤트에 파일명이 없습니다.", RED)
                 return
 
-            # 설정된 Windows 로컬 저장 경로 가져오기
-            local_base_path = self.state.local_path.get()
+            # 현재 GUI에 설정된 저장 방식 확인
+            storage_mode = self.state.storage_mode.get()
 
-            # 사진 다운로드가 GUI 화면을 멈추지 않도록 별도 스레드에서 실행
-            threading.Thread(
-                target=self._download_photo_in_background,
-                args=(filename, local_base_path),
-                name="PhotoDownloadThread",
-                daemon=True
-            ).start()
+            # 저장 방식이 FTP인 경우 Winodws 로컬 사진 다운로드를 진행하지 않음
+            if storage_mode == "ftp":
+                return
+
+            # 로컬 또는 FTP + 로컬인 경우 Windows 로컬 사진 다운로드를 진행
+            if storage_mode in ("local", "both"):
+                # 로컬 경로 가져오기
+                local_base_path = self.state.local_path.get()
+
+                # GUI 화면이 멈추지 않도록 사진 다운로드를 별도 스레드에서 실행
+                threading.Thread(
+                    target=self._download_photo_in_background,
+                    args=(filename, local_base_path),
+                    name="PhotoDownloadThread",
+                    daemon=True
+                ).start()
 
     # ==========================================
     # 사진 다운로드 백그라운드 처리
