@@ -1,3 +1,4 @@
+import threading
 import tkinter as tk
 from config import APP_TITLE, WINDOW_GEOMETRY, WINDOW_MIN_SIZE, BG, GREEN, RED
 from state import AppState
@@ -7,6 +8,7 @@ from ui import system_status, server_connection, ftp_settings, save_path
 from ui import capture_settings, storage_mode, capture_control
 from ui import recent_photos, notifications
 from services.websocket_client import WebSocketClient
+from services.api_client import download_photo
 
 # ==========================================
 # GUI 애플리케이션 메인 클래스
@@ -96,9 +98,36 @@ class CameraManagerApp:
         elif event_type == "connection_error":
             self.notify(data.get("message", "WebSocket 연결 오류"), RED)
         elif event_type == "photo_saved":
-            filename = data.get("filename", "파일명 없음")
+            # 서버 이벤트 데이터에서 사진 파일명과 촬영 뷰 정보 추출
+            filename = data.get("filename", "")
             view = data.get("view", "unknown")
-            self.notify("사진 촬영 완료: {} ({})".format(filename, view), GREEN)
+
+            # 사진 파일명이 전달되지 않은 경우 다운로드를 진행하지 않음
+            if not filename:
+                self.notify("사진 촬영 이벤트에 파일명이 없습니다.", RED)
+                return
+
+            # 설정된 Windows 로컬 저장 경로 가져오기
+            local_base_path = self.state.local_path.get()
+
+            # 사진 다운로드가 GUI 화면을 멈추지 않도록 별도 스레드에서 실행
+            threading.Thread(
+                target=self._download_photo_in_background,
+                args=(filename, local_base_path),
+                name="PhotoDownloadThread",
+                daemon=True
+            ).start()
+
+    # ==========================================
+    # 사진 다운로드 백그라운드 처리
+    # ==========================================
+    def _download_photo_in_background(self, filename, local_base_path):
+        try:
+            # 서버에서 사진을 다운로드하여 Windows 로컬 경로에 저장
+            download_photo(filename, local_base_path)
+        except Exception as error:
+            # 다운로드 실패 시 오류 내용을 콘솔에 출력
+            print("사진 다운로드 실패: {}".format(error))
 
     # ==========================================
     # 애플리케이션 종료 처리 메서드
