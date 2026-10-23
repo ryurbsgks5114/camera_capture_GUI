@@ -1,9 +1,9 @@
-# Camera Manager - Windows GUI 애플리케이션
+# 📷 Camera Manager - Windows GUI 애플리케이션
 
 라즈베리파이 카메라 촬영 서버를 설정하고 제어하는 Tkinter 기반 Windows GUI 애플리케이션입니다.<br>
 HTTP API로 촬영을 시작·중지하고, WebSocket으로 서버 연결 상태 및 이벤트를 수신합니다.
 
-## 폴더 및 파일 구조
+## 📂 폴더 및 파일 구조
 
 ```text
 camera_capture_GUI/
@@ -34,7 +34,7 @@ camera_capture_GUI/
     └── notifications.py              # 알림 UI
 ```
 
-## 의존성 설치
+## 📦 의존성 설치
 
 PowerShell에서 프로젝트 폴더로 이동합니다.
 
@@ -50,7 +50,7 @@ python -m pip install --upgrade pip
 python -m pip install "python-socketio==5.11.0" "python-engineio==4.8.0" "requests" "websocket-client==1.6.4"
 ```
 
-## 실행 방법
+## 🚀 실행 방법
 
 ```powershell
 python main.py
