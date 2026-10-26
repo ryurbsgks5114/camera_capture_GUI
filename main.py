@@ -57,7 +57,7 @@ class CameraManagerApp:
         self.websocket_client = WebSocketClient(
             root=self.root,
             on_status=self._on_websocket_status,
-            on_test_event=self._on_websocket_event
+            on_event=self._on_websocket_event
         )
         self.websocket_client.start()
 
@@ -92,12 +92,8 @@ class CameraManagerApp:
 
         event_type = data.get("type")
 
-        # 이벤트 유형에 따른 메시지 알림
-        if event_type == "connection_test":
-            self.notify(data.get("message", "WebSocket 테스트 이벤트를 수신했습니다."), GREEN)
-        elif event_type == "connection_error":
-            self.notify(data.get("message", "WebSocket 연결 오류"), RED)
-        elif event_type == "photo_saved":
+        # 사진 촬영 완료 이벤트 처리
+        if event_type == "photo_saved":
             # 서버 이벤트 데이터에서 사진 파일명 추출
             filename = data.get("filename", "")
 
