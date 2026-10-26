@@ -12,7 +12,7 @@ camera_capture_GUI/
 ├── state.py                          # GUI 입력값과 상태를 보관하는 Tkinter 변수
 ├── secret_config.example.py          # FTP 민감정보 설정 파일 예시(값 입력 후 'example.' 부분 삭제)
 ├── services/                         # 서버 통신, 검증 및 외부 서비스 로직
-│   ├── api_client.py                 # 서버 HTTP API 요청(/status, /start, /stop 등)
+│   ├── api_client.py                 # 서버 HTTP API 요청(/status, /start, /stop, /photos)
 │   ├── capture_settings_validator.py # 촬영 설정 입력값 검증
 │   ├── capture_start_validator.py    # 촬영 시작 전 필수 설정 검증
 │   ├── ftp_client.py                 # FTP 서버 연결 및 폴더/파일 관련 처리
