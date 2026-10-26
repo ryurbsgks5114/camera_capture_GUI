@@ -6,8 +6,8 @@ from secret_config import (
 )
 
 APP_TITLE = "Camera Manager"
-WINDOW_GEOMETRY = "1400x900"
-WINDOW_MIN_SIZE = (1200, 760)
+WINDOW_GEOMETRY = "1280x960"
+WINDOW_MIN_SIZE = (1280, 960)
 
 BG = "#F5F8FC"
 WHITE = "#FFFFFF"
