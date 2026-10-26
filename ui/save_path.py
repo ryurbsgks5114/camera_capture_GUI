@@ -20,7 +20,11 @@ def build(parent, app):
 
         if selected:
             app.state.local_path.set(selected)
-            app.notify("로컬 저장 경로가 변경되었습니다.")
+
+            if app.state.save_path_settings():
+                app.notify("로컬 저장 경로가 변경되었습니다.")
+            else:
+                app.notify("경로는 변경되었지만 설정 파일 저장에 실패했습니다.", RED)
 
     # ==========================================
     # 'FTP 저장 경로'의 '선택' 버튼 클릭 시 호출되는 함수

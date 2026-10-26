@@ -187,7 +187,12 @@ def open_ftp_browser(app, host, port, user, password):
 
         # 선택 시점에도 해당 경로의 접속 및 조회가 성공한 경로만 저장합니다.
         app.state.ftp_path.set(selected_path)
-        app.notify("FTP 저장 경로가 변경되었습니다.")
+
+        if app.state.save_path_settings():
+            app.notify("FTP 저장 경로가 변경되었습니다.")
+        else:
+            app.notify("경로는 변경되었지만 설정 파일 저장에 실패했습니다.", RED)
+
         dialog.destroy()
 
     # 모달 창 하단 제어 버튼들 생성 및 배치

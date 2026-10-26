@@ -8,8 +8,7 @@ from config import (
     FTP_HOST,
     FTP_PORT,
     FTP_USER,
-    FTP_PASSWORD,
-    FTP_BASE_DIR
+    FTP_PASSWORD
 )
 from services.ftp_client import test_ftp_connection
 from services.ftp_validator import validate_ftp_settings
@@ -40,7 +39,7 @@ def build(parent, app):
         port_text = app.state.ftp_port.get().strip()
         user = app.state.ftp_user.get().strip()
         password = app.state.ftp_password.get()
-        remote_path = FTP_BASE_DIR
+        remote_path = app.state.ftp_path.get().strip()
 
         # FTP 설정값 검증
         valid, message, port = validate_ftp_settings(
