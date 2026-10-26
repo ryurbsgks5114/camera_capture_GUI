@@ -8,7 +8,7 @@ from ui import system_status, server_connection, ftp_settings, save_path
 from ui import capture_settings, storage_mode, capture_control
 from ui import recent_photos, notifications
 from services.websocket_client import WebSocketClient
-from services.api_client import download_photo
+from services.api_client import download_photo, get_server_status, stop_capture
 
 # ==========================================
 # GUI 애플리케이션 메인 클래스
@@ -140,9 +140,51 @@ class CameraManagerApp:
     # 애플리케이션 종료 처리 메서드
     # ==========================================
     def close(self):
-        # 이번 단계에서는 WebSocket 연결만 정리
-        # 촬영 중지 API 호출을 포함한 종료 처리는 다음 단계에서 추가예정
+        # 종료 처리가 이미 진행 중이면 중복 실행 방지
+        if getattr(self, "_closing", False):
+            return
+
+        self._closing = True
+
+        # GUI 종료 중복 실행을 방지하기 위해 창 닫기 동작 비활성화
+        self.root.protocol("WM_DELETE_WINDOW", lambda: None)
+
+        # ==========================================
+        # 서버 촬영 상태 확인 및 중지 요청
+        # ==========================================
+        def stop_capture_before_close():
+            try:
+                # 서버의 현재 촬영 상태 조회
+                server_status = get_server_status()
+
+                # 서버에서 실제 촬영 중인 경우에만 중지 요청
+                if server_status.get("capture") == "running":
+                    stop_capture()
+            except Exception as error:
+                # 서버 연결 실패 등으로 중지 요청을 완료하지 못한 경우 기록
+                print("GUI 종료 중 촬영 상태 확인 또는 중지 요청 실패: {}".format(error))
+            finally:
+                # 서버 응답 여부와 관계없이 GUI 종료 처리를 진행
+                try:
+                    self.root.after(0, self._finish_close)
+                except Exception:
+                    # GUI가 이미 종료된 경우 추가 작업을 진행하지 않음
+                    pass
+
+        # 백그라운드 스레드에서 서버 촬영 상태 확인 및 중지 처리
+        threading.Thread(
+            target=stop_capture_before_close,
+            name="CaptureStopBeforeCloseThread",
+            daemon=True
+        ).start()
+
+    # ==========================================
+    # WebSocket 연결 정리 및 GUI 종료
+    # ==========================================
+    def _finish_close(self):
+        # GUI 종료 전에 WebSocket 연결 정리
         self.websocket_client.stop()
+        # 메인 창 종료
         self.root.destroy()
 
     # 입력값 유효성 검증 정적 메서드
