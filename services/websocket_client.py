@@ -105,9 +105,6 @@ class WebSocketClient:
                     self._failure_reported = True
                     self._dispatch_status("연결 실패")
                 
-                # 연결 실패 상태 전달
-                self._dispatch(self.on_status, "연결 실패")
-
                 # 설정된 재연결 지연 시간만큼 대기 후 재시도
                 self._stop_event.wait(WEBSOCKET_RECONNECT_DELAY)
 
