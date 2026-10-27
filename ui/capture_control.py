@@ -14,7 +14,9 @@ from ui.common import create_panel
 def build(parent, app):
     # 상위 패널 생성
     panel = create_panel(parent, "촬영 제어")
-    panel.pack(fill="both", expand=True, pady=5)
+    panel.configure(height=460)
+    panel.pack(fill="both", expand=False, pady=5)
+    panel.pack_propagate(False)
 
     # 버튼 및 내부 바디 생성
     body = tk.Frame(panel, bg=WHITE)

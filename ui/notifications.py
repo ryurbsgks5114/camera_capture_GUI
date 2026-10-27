@@ -10,7 +10,9 @@ from ui.common import create_panel
 def build(parent, app):
     # 상위 패널 생성
     panel = create_panel(parent, "알림")
-    panel.pack(fill="both", expand=True, pady=5)
+    panel.configure(height=392)
+    panel.pack(fill="both", expand=False, pady=(0, 5))
+    panel.pack_propagate(False)
 
     # 알림 로그를 담을 내부 영역 생성
     area = tk.Frame(panel, bg=WHITE)
