@@ -2,5 +2,12 @@
 __pycache__/
 *.pyc
 
+# PyInstaller 빌드 결과물
+/build/
+/dist/
+
+# PyInstaller spec 파일
+/main.spec
+
 # 민감정보
 secret_config.py
