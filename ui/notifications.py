@@ -48,6 +48,48 @@ def build(parent, app):
     canvas.bind("<Configure>", resize_list)
 
     # ==========================================
+    # 마우스 휠로 알림 목록 스크롤 함수
+    # ==========================================
+    def on_mousewheel(event):
+        # 마우스 포인터가 알림 영역 안에 있는지 확인
+        left = canvas.winfo_rootx()
+        top = canvas.winfo_rooty()
+        right = left + canvas.winfo_width()
+        bottom = top + canvas.winfo_height()
+
+        # 영역 바깥에 마우스가 있을 경우 스크롤 무시
+        if not (left <= event.x_root < right and top <= event.y_root < bottom):
+            return
+
+        canvas.update_idletasks()
+
+        # 알림 목록의 실제 높이와 화면에 표시되는 높이 확인
+        bbox = canvas.bbox(window)
+
+        if bbox is None:
+            return "break"
+
+        content_height = bbox[3] - bbox[1]
+        visible_height = canvas.winfo_height()
+
+        # 알림 목록이 화면 안에 전부 표시되면 휠 이동 금지
+        if content_height <= visible_height:
+            return "break"
+
+        # 실제로 스크롤할 수 있을 때만 이동
+        delta = int(-event.delta / 120)
+
+        if delta == 0:
+            return "break"
+
+        canvas.yview_scroll(delta, "units")
+        
+        return "break"
+
+    # 알림 영역에서만 마우스 휠 처리
+    canvas.bind_all("<MouseWheel>", on_mousewheel)
+
+    # ==========================================
     # 새로운 알림 로그를 화면에 추가하고 가장 아래로 스크롤을 이동하는 함수
     # ==========================================
     def add_notice(message, color=TEXT):
