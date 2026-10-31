@@ -21,8 +21,8 @@ GRAY = "#AAB7C7"
 GRAY_LIGHT = "#F1F4F8"
 RED = "#DF4B55"
 
-# Raspberry Pi 서버 연결 설정
-SERVER_HOST = "192.168.1.39"
+# 서버 연결 설정
+SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 5000
 SERVER_TIMEOUT = 15
 
