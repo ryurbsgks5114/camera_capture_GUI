@@ -187,36 +187,31 @@ class CameraManagerApp:
             except Exception as error:
                 # 서버 연결 실패 등으로 중지 요청을 완료하지 못한 경우 기록
                 print("GUI 종료 중 촬영 상태 확인 또는 중지 요청 실패: {}".format(error))
-            finally:
-                # 서버 응답 여부와 관계없이 GUI 종료 처리를 진행
-                try:
-                    self.root.after(0, self._finish_close)
-                except Exception:
-                    # GUI가 이미 종료된 경우 추가 작업을 진행하지 않음
-                    pass
 
         # 백그라운드 스레드에서 서버 촬영 상태 확인 및 중지 처리
+        # GUI 창이 닫혀도 중지 요청이 완료될 수 있도록 daemon=False 사용
         threading.Thread(
             target=stop_capture_before_close,
             name="CaptureStopBeforeCloseThread",
-            daemon=True
+            daemon=False
         ).start()
 
-    # ==========================================
-    # WebSocket 연결 정리 및 GUI 종료
-    # ==========================================
-    def _finish_close(self):
-        # GUI 종료 전에 WebSocket 연결 정리
+        # WebSocket 연결 종료 요청
         self.websocket_client.stop()
-        # 메인 창 종료
+
+        # 서버 응답을 기다리지 않고 GUI 창 즉시 종료
         self.root.destroy()
 
+    # ==========================================
     # 입력값 유효성 검증 정적 메서드
+    # ==========================================
     @staticmethod
     def validate_number(value):
         return value.isdigit() or value == ""
-
+    
+    # ==========================================
     # 시스템 상태 UI 갱신 메서드
+    # ==========================================
     def refresh_system_status(self):
         system_status.refresh(self)
 

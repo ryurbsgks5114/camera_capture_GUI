@@ -50,6 +50,10 @@ class WebSocketClient:
     # Tkinter 메인 스레드 안전하게 콜백을 호출하기 위한 헬퍼 함수
     # ==========================================
     def _dispatch(self, callback, value):
+        # 종료 요청 이후에는 새로운 UI 작업을 예약하지 않음
+        if self._stop_event.is_set():
+            return
+
         try:
             self.root.after(0, lambda: callback(value))
         except Exception:
@@ -94,6 +98,10 @@ class WebSocketClient:
                 if not self.client.connected:
                     self.client.connect(url, wait_timeout=5)
 
+                # 연결 시도 도중 종료 요청이 들어왔는지 확인
+                if self._stop_event.is_set():
+                    break
+
                 # 연결 유지 상태 대기
                 self.client.wait()
             except Exception as error:
@@ -109,13 +117,25 @@ class WebSocketClient:
                 self._stop_event.wait(WEBSOCKET_RECONNECT_DELAY)
 
     # ==========================================
-    # WebSocket 클라이언트 종료 메서드
+    # WebSocket 연결 해제 처리 메서드
     # ==========================================
-    def stop(self):
-        self._stop_event.set()
-        
+    def _disconnect(self):
         try:
             if self.client.connected:
                 self.client.disconnect()
         except Exception:
             pass
+
+    # ==========================================
+    # WebSocket 클라이언트 종료 메서드
+    # ==========================================
+    def stop(self):
+        # 재연결 및 새로운 UI 콜백 실행 방지
+        self._stop_event.set()
+
+        # WebSocket 연결 해제를 별도 스레드에서 실행
+        threading.Thread(
+            target=self._disconnect,
+            name="WebSocketDisconnectThread",
+            daemon=True
+        ).start()
