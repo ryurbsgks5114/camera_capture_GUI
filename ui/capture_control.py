@@ -219,6 +219,10 @@ def build(parent, app):
             "storage_mode": app.state.storage_mode.get()
         }
 
+        # local / both 모드에서는 GUI에서 선택한 로컬 저장 경로 전달
+        if payload["storage_mode"] in ("local", "both"):
+            payload["local_path"] = app.state.local_path.get().strip()
+
         # FTP 모드에서는 GUI의 FTP 설정을 서버 API에 함께 전달
         if payload["storage_mode"] in ("ftp", "both"):
             payload["ftp"] = {

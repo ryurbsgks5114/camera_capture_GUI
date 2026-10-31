@@ -8,7 +8,7 @@ from ui import system_status, server_connection, ftp_settings, save_path
 from ui import capture_settings, storage_mode, capture_control
 from ui import recent_photos, notifications
 from services.websocket_client import WebSocketClient
-from services.api_client import download_photo, get_server_status, stop_capture
+from services.api_client import get_server_status, stop_capture
 
 # ==========================================
 # GUI 애플리케이션 메인 클래스
@@ -102,63 +102,22 @@ class CameraManagerApp:
             if not filename or view not in ("side", "top"):
                 return
 
-            # 현재 GUI에 설정된 저장 방식 확인
-            storage_mode = self.state.storage_mode.get()
+            # 서버에서 전송한 Base64 썸네일 데이터 추출
+            preview_data = data.get("preview_data", "")
 
-            # 저장 방식이 FTP인 경우 Winodws 로컬 사진 다운로드를 진행하지 않음
-            # 서버에서 전송된 Base64 미리보기 데이터를 활용해 실시간으로 GUI 화면만 갱신
-            if storage_mode == "ftp":
-                # 서버에서 전송한 Base64 인코딩된 미리보기 데이터 추출
-                preview_data = data.get("preview_data", "")
-
-                # 미리보기 데이터가 누락된 경우 경고 출력 후 처리 중단
-                if not preview_data:
-                    print("FTP 모드 미리보기 데이터가 없습니다:", filename)
-                    return
-                    
-                # Tkinter GUI 메인 스레드의 안전성을 위해 root.after를 사용
-                # Base64 데이터를 디코딩하고 썸네일 미리보기 화면을 비동기(메인 스레드)로 갱신
-                self.root.after(
-                    0,
-                    lambda: recent_photos.update_photo_from_base64(
-                        self, view, filename, preview_data
-                    )
-                )
+            # 썸네일 데이터가 누락된 경우 처리 중단
+            if not preview_data:
+                print("사진 썸네일 데이터가 없습니다:", filename)
 
                 return
-
-            # 로컬 또는 FTP + 로컬인 경우 Windows 로컬 사진 다운로드를 진행
-            if storage_mode in ("local", "both"):
-                # 로컬 경로 가져오기
-                local_base_path = self.state.local_path.get()
-
-                # GUI 화면이 멈추지 않도록 사진 다운로드를 별도 스레드에서 실행
-                threading.Thread(
-                    target=self._download_photo_in_background,
-                    args=(filename, local_base_path, view),
-                    name="PhotoDownloadThread",
-                    daemon=True
-                ).start()
-
-    # ==========================================
-    # 사진 다운로드 및 UI 갱신 백그라운드 처리
-    # ==========================================
-    def _download_photo_in_background(self, filename, local_base_path, view):
-        try:
-            # 서버에서 사진을 다운로드하여 Windows 로컬 경로에 저장
-            photo_path = download_photo(filename, local_base_path)
-
-            # Tkinter GUI 메인 스레드의 안전성을 위해 root.after를 사용
-            # 메인 스레드에서 최근 촬영 사진 썸네일 UI를 비동기로 갱신
+            
+            # Tkinter GUI 메인 스레드에서 썸네일 UI 갱신
             self.root.after(
                 0,
-                lambda: recent_photos.update_photo(
-                    self, view, photo_path
+                lambda: recent_photos.update_photo_from_base64(
+                    self, view, filename, preview_data
                 )
             )
-        except Exception as error:
-            # 다운로드 실패 시 오류 내용을 콘솔에 출력
-            print("사진 다운로드 실패: {}".format(error))
 
     # ==========================================
     # 애플리케이션 종료 처리 메서드

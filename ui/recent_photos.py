@@ -118,7 +118,7 @@ def build(parent, app):
         )
 
 # ==========================================
-# 이미지 객체를 받아 원본을 보관하고 썸네일로 변환하여 화면에 표시하는 함수
+# 전달받은 썸네일 이미지를 메모리에 보관하고 화면에 표시하는 함수
 # ==========================================
 def _update_photo_image(app, view, image, filename):
     # 앱 객체에 저장된 썸네일 위젯 딕셔너리에서 해당 뷰의 위젯들을 가져옴
@@ -128,16 +128,16 @@ def _update_photo_image(app, view, image, filename):
         return
 
     try:
-        # 전달받은 이미지를 RGB 모드로 변환 후 원본 복사본으로 저장(확대 보기용)
-        original_image = image.convert("RGB").copy()
+        # 전달받은 이미지를 RGB 모드로 변환 후 썸네일 복사본으로 저장
+        preview_image = image.convert("RGB").copy()
 
-        widgets["original_image"] = original_image
+        widgets["original_image"] = preview_image
         widgets["filename"] = filename
 
         # Pillow 버전 호환성을 고려하여 LANCZOS 리샘플링 방식 설정
         resampling = getattr(Image, "Resampling", Image)
 
-        thumbnail_image = original_image.copy()
+        thumbnail_image = preview_image.copy()
         # 썸네일 영역 규격에 맞춰 비율을 유지하며 썸네일 크기로 조절
         thumbnail_image.thumbnail((250, 250), resampling.LANCZOS)
 
@@ -155,7 +155,7 @@ def _update_photo_image(app, view, image, filename):
         print("최근 촬영 사진 표시 실패:", error)
 
 # ==========================================
-# 썸네일 클릭 시 원본 사진을 큰 창으로 띄워주는 함수
+# 썸네일 클릭 시 썸네일 이미지를 큰 창으로 띄워주는 함수
 # ==========================================
 def open_photo_large(app, view):
     # 선택한 뷰의 위젯 정보 가져오기
@@ -164,17 +164,17 @@ def open_photo_large(app, view):
     if not widgets:
         return
 
-    # 저장되어 있는 원본 이미지 확인
-    original_image = widgets.get("original_image")
+    # 저장되어 있는 썸네일 이미지 확인
+    preview_image = widgets.get("original_image")
 
     # 아직 촬영된 사진이 없으면 확대 창을 열지 않음
-    if original_image is None:
+    if preview_image is None:
         return
 
     filename = widgets.get("filename", "사진")
 
-    # 원본 이미지 데이터는 보호하고, 확대 창 표시용 복사본 생성 후 적정 규격으로 크기 조절
-    display_image = original_image.copy()
+    # 썸네일 데이터의 복사본을 생성하고 확대 창 표시 규격에 맞게 조절
+    display_image = preview_image.copy()
 
     resampling = getattr(Image, "Resampling", Image)
     display_image.thumbnail((1100, 750), resampling.LANCZOS)
@@ -212,7 +212,7 @@ def open_photo_large(app, view):
     image_label.pack(expand=True, padx=12, pady=(0, 12))
 
     # 창이 열려 있는 동안 이미지 참조 유지
-    preview_window.original_image = original_image
+    preview_window.original_image = preview_image
 
 # ==========================================
 # 로컬에 저장된 사진으로 썸네일 갱신

@@ -1,6 +1,4 @@
 import json
-import re
-from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from config import SERVER_HOST, SERVER_PORT, SERVER_TIMEOUT
@@ -80,71 +78,3 @@ def stop_capture():
         raise RuntimeError("촬영 중지 요청에 실패했습니다.")
 
     return data
-
-# ==========================================
-# 사진 다운로드 및 Windows 로컬 저장
-# ==========================================
-def download_photo(filename, local_base_path):
-    # 사진 파일명이 정해진 형식인지 검증
-    match = re.fullmatch(r"[ST]_(\d{8})_\d{6}\.jpg", filename or "")
-
-    if not match:
-        raise RuntimeError("사진 파일명 형식이 올바르지 않습니다.")
-
-    # 파일명에서 촬영 날짜 추출
-    date = match.group(1)
-
-    # 사진 다운로드 API 주소 생성
-    url = "http://{}:{}{}/{}/{}".format(
-        SERVER_HOST,
-        SERVER_PORT,
-        "/photos",
-        date,
-        filename
-    )
-
-    # 사진 다운로드를 위한 GET 요청 객체 생성
-    # 사진 데이터는 JSON이 아닌 JPEG 바이너리 형식으로 수신
-    request = Request(
-        url,
-        headers={"Accept": "image/jpeg"},
-        method="GET"
-    )
-
-    try:
-        # 서버에 사진 다운로드 요청을 보내고 응답 데이터 읽기
-        with urlopen(request, timeout=SERVER_TIMEOUT) as response:
-            photo_data = response.read()
-    except HTTPError as error:
-        # 서버에서 해당 사진을 찾지 못한 경우
-        if error.code == 404:
-            raise RuntimeError("서버에서 사진을 찾을 수 없습니다: {}".format(filename))
-
-        # 그 외 HTTP 오류 발생 시 오류 코드 전달
-        raise RuntimeError("사진 다운로드 HTTP 오류: {}".format(error.code))
-    except (URLError, TimeoutError, OSError) as error:
-        # 네트워크 단절, 타임아웃, 시스템 오류 발생 시 예외 처리
-        raise RuntimeError("사진 다운로드에 실패했습니다.\n""상세 오류: {}".format(error))
-
-    # 응답 데이터가 비어 있는 경우 파일 저장을 중단
-    if not photo_data:
-        raise RuntimeError("다운로드한 사진 데이터가 비어 있습니다.")
-
-    # Windows의 로컬 저장 경로 아래에 날짜별 폴더 생성
-    date_dir = Path(local_base_path).expanduser() / date
-    # 날짜 폴더가 없으면 생성하고, 이미 존재하면 그대로 사용
-    date_dir.mkdir(parents=True, exist_ok=True)
-
-    # 원본 사진 파일명을 유지하여 저장
-    photo_path = date_dir / filename
-
-    try:
-        # JPEG 바이너리 데이터를 파일로 저장
-        with open(str(photo_path), "wb") as photo_file:
-            photo_file.write(photo_data)
-    except OSError as error:
-        # 로컬 폴더 접근 권한 또는 디스크 문제 등으로 저장에 실패한 경우
-        raise RuntimeError("Windows에 사진을 저장하지 못했습니다.\n""상세 오류: {}".format(photo_path, error))
-
-    # 다운로드 및 저장이 완료된 사진의 전체 경로 반환
-    return str(photo_path)
