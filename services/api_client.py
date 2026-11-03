@@ -58,6 +58,30 @@ def get_server_status():
     return data
 
 # ==========================================
+# 연결된 카메라 목록 조회 함수
+# ==========================================
+def get_cameras():
+    status_code, data = _request_json("/cameras", method="GET")
+
+    # 서버가 HTTP 오류를 반환한 경우 서버에서 전달한 메시지를 우선 표시
+    if status_code < 200 or status_code >= 300:
+        raise RuntimeError(
+            data.get("message", "카메라 목록 조회에 실패했습니다.")
+        )
+
+    if not data.get("success", False):
+        raise RuntimeError(
+            data.get("message", "카메라 목록 조회에 실패했습니다.")
+        )
+
+    cameras = data.get("cameras")
+
+    if not isinstance(cameras, list):
+        raise RuntimeError("서버의 카메라 목록 응답 형식이 올바르지 않습니다.")
+
+    return cameras
+
+# ==========================================
 # 촬영 시작 요청 함수
 # ==========================================
 def start_capture(payload):
