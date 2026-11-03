@@ -42,12 +42,12 @@ class CameraManagerApp:
         system_status.build(left, self)
         server_connection.build(left, self)
         ftp_settings.build(left, self)
-        save_path.build(left, self)
+        camera_settings.build(left, self)
 
         # 중앙 UI 구성(촬영 설정, 저장 방식, 촬영 제어)
-        capture_settings.build(center, self)
-        camera_settings.build(center, self)
         storage_mode.build(center, self)
+        save_path.build(center, self)
+        capture_settings.build(center, self)
         capture_control.build(center, self)
 
         # 우측 UI 구성(최근 촬영 사진, 알림)

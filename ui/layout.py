@@ -1,6 +1,9 @@
+
 import tkinter as tk
+from tkinter import ttk
 from datetime import datetime
 from config import BG, WHITE, TEXT, SUBTEXT
+
 
 # ==========================================
 # 상단 헤더 UI 생성 함수
@@ -30,9 +33,7 @@ def build_header(root):
     )
     datetime_label.pack(side="right", padx=24)
 
-    # ==========================================
-    # 현재 날짜와 시간을 계산하여 1분 주기로 재호출하는 함수
-    # ==========================================
+    # 현재 날짜와 시간 갱신
     def update_datetime():
         now = datetime.now()
         weekdays = ["월", "화", "수", "목", "금", "토", "일"]
@@ -45,37 +46,138 @@ def build_header(root):
 
         datetime_label.config(text=datetime_text)
 
-        # 다음 분이 시작되는 정각에 맞춰 갱신되도록 딜레이 계산 후 root.after 예약
         delay = (60 - now.second) * 1000 - now.microsecond // 1000
         root.after(max(delay, 1), update_datetime)
 
-    # 시계 기능 최초 실행
     update_datetime()
 
+
 # ==========================================
-# 메인 화면 레이아웃(3분할 그리드)을 생성하는 함수
+# 메인 화면 레이아웃 및 스크롤 영역 생성 함수
 # ==========================================
 def build_main(root):
-    # 메인 컨테이너 프레임 생성 및 배치
-    main = tk.Frame(root, bg=BG)
-    main.pack(fill="both", expand=True, padx=14, pady=14)
+    # 메인 화면 스크롤 영역 컨테이너
+    viewport = tk.Frame(root, bg=BG)
+    viewport.pack(fill="both", expand=True, padx=14, pady=14)
 
-    # 3개 컬럼의 가로 비율 설정
+    # 스크롤 가능한 캔버스
+    canvas = tk.Canvas(
+        viewport,
+        bg=BG,
+        highlightthickness=0,
+        borderwidth=0
+    )
+
+    # 가로 스크롤바
+    horizontal_scrollbar = ttk.Scrollbar(
+        viewport,
+        orient="horizontal",
+        command=canvas.xview
+    )
+
+    # 세로 스크롤바
+    vertical_scrollbar = ttk.Scrollbar(
+        viewport,
+        orient="vertical",
+        command=canvas.yview
+    )
+
+    # 캔버스와 스크롤바 연결
+    canvas.configure(
+        xscrollcommand=horizontal_scrollbar.set,
+        yscrollcommand=vertical_scrollbar.set
+    )
+
+    # 컨테이너 배치 설정
+    viewport.grid_rowconfigure(0, weight=1)
+    viewport.grid_columnconfigure(0, weight=1)
+
+    canvas.grid(row=0, column=0, sticky="nsew")
+    vertical_scrollbar.grid(row=0, column=1, sticky="ns")
+    horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
+
+    # 실제 UI가 배치될 내부 프레임
+    main = tk.Frame(canvas, bg=BG)
+
+    main_window = canvas.create_window(
+        (0, 0),
+        window=main,
+        anchor="nw"
+    )
+
+    # ==========================================
+    # 내부 화면 크기 및 스크롤 영역 갱신
+    # ==========================================
+    def update_content_size(event=None):
+        if not canvas.winfo_exists() or not main.winfo_exists():
+            return
+
+        # 내부 UI가 요구하는 최소 크기
+        required_width = main.winfo_reqwidth()
+        required_height = main.winfo_reqheight()
+
+        # 창이 작아져도 내부 UI의 최소 크기는 유지
+        content_width = max(
+            canvas.winfo_width(),
+            required_width
+        )
+
+        content_height = max(
+            canvas.winfo_height(),
+            required_height
+        )
+
+        # 내부 프레임 크기 적용
+        canvas.itemconfigure(
+            main_window,
+            width=content_width,
+            height=content_height
+        )
+
+        # 스크롤 가능한 전체 영역 설정
+        canvas.configure(
+            scrollregion=(0, 0, content_width, content_height)
+        )
+
+    # 내부 위젯 크기 변경 시 갱신
+    main.bind("<Configure>", update_content_size)
+
+    # GUI 창 크기 변경 시 갱신
+    canvas.bind("<Configure>", update_content_size)
+
+    # ==========================================
+    # 기존 3열 레이아웃 유지
+    # ==========================================
     main.grid_columnconfigure(0, weight=30)
     main.grid_columnconfigure(1, weight=36)
     main.grid_columnconfigure(2, weight=34)
     main.grid_rowconfigure(0, weight=1)
 
-    # 좌측 영역 프레임 생성 및 배치
+    # 좌측 영역
     left = tk.Frame(main, bg=BG)
-    left.grid(row=0, column=0, sticky="nsew", padx=(0, 7))
+    left.grid(
+        row=0,
+        column=0,
+        sticky="nsew",
+        padx=(0, 7)
+    )
 
-    # 중앙 영역 프레임 생성 및 배치
+    # 중앙 영역
     center = tk.Frame(main, bg=BG)
-    center.grid(row=0, column=1, sticky="nsew", padx=7)
+    center.grid(
+        row=0,
+        column=1,
+        sticky="nsew",
+        padx=7
+    )
 
-    # 우측 영역 프레임 생성 및 배치
+    # 우측 영역
     right = tk.Frame(main, bg=BG)
-    right.grid(row=0, column=2, sticky="nsew", padx=(7, 0))
+    right.grid(
+        row=0,
+        column=2,
+        sticky="nsew",
+        padx=(7, 0)
+    )
 
     return main, left, center, right
