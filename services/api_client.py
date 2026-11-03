@@ -82,6 +82,55 @@ def get_cameras():
     return cameras
 
 # ==========================================
+# 저장된 카메라 역할 설정 조회 함수
+# ==========================================
+def get_camera_config():
+    status_code, data = _request_json(
+        "/camera-config",
+        method="GET"
+    )
+
+    if status_code < 200 or status_code >= 300:
+        raise RuntimeError(
+            data.get("message", "카메라 설정 조회에 실패했습니다.")
+        )
+
+    if not data.get("success", False):
+        raise RuntimeError(
+            data.get("message", "카메라 설정 조회에 실패했습니다.")
+        )
+
+    camera_config = data.get("camera_config")
+
+    if camera_config is not None and not isinstance(camera_config, dict):
+        raise RuntimeError("서버의 카메라 설정 응답 형식이 올바르지 않습니다.")
+
+    return camera_config
+
+
+# ==========================================
+# 카메라 역할 설정 저장 함수
+# ==========================================
+def save_camera_config(side_camera_id=None, top_camera_id=None):
+    payload = {
+        "side_camera_id": side_camera_id,
+        "top_camera_id": top_camera_id
+    }
+
+    status_code, data = _request_json(
+        "/camera-config",
+        method="POST",
+        payload=payload
+    )
+
+    if status_code < 200 or status_code >= 300 or not data.get("success", False):
+        raise RuntimeError(
+            data.get("message", "카메라 역할 설정 저장에 실패했습니다.")
+        )
+
+    return data.get("camera_config")
+
+# ==========================================
 # 촬영 시작 요청 함수
 # ==========================================
 def start_capture(payload):
