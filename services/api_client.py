@@ -58,6 +58,79 @@ def get_server_status():
     return data
 
 # ==========================================
+# 연결된 카메라 목록 조회 함수
+# ==========================================
+def get_cameras():
+    status_code, data = _request_json("/cameras", method="GET")
+
+    # 서버가 HTTP 오류를 반환한 경우 서버에서 전달한 메시지를 우선 표시
+    if status_code < 200 or status_code >= 300:
+        raise RuntimeError(
+            data.get("message", "카메라 목록 조회에 실패했습니다.")
+        )
+
+    if not data.get("success", False):
+        raise RuntimeError(
+            data.get("message", "카메라 목록 조회에 실패했습니다.")
+        )
+
+    cameras = data.get("cameras")
+
+    if not isinstance(cameras, list):
+        raise RuntimeError("서버의 카메라 목록 응답 형식이 올바르지 않습니다.")
+
+    return cameras
+
+# ==========================================
+# 저장된 카메라 역할 설정 조회 함수
+# ==========================================
+def get_camera_config():
+    status_code, data = _request_json(
+        "/camera-config",
+        method="GET"
+    )
+
+    if status_code < 200 or status_code >= 300:
+        raise RuntimeError(
+            data.get("message", "카메라 설정 조회에 실패했습니다.")
+        )
+
+    if not data.get("success", False):
+        raise RuntimeError(
+            data.get("message", "카메라 설정 조회에 실패했습니다.")
+        )
+
+    camera_config = data.get("camera_config")
+
+    if camera_config is not None and not isinstance(camera_config, dict):
+        raise RuntimeError("서버의 카메라 설정 응답 형식이 올바르지 않습니다.")
+
+    return camera_config
+
+
+# ==========================================
+# 카메라 역할 설정 저장 함수
+# ==========================================
+def save_camera_config(side_camera_id=None, top_camera_id=None):
+    payload = {
+        "side_camera_id": side_camera_id,
+        "top_camera_id": top_camera_id
+    }
+
+    status_code, data = _request_json(
+        "/camera-config",
+        method="POST",
+        payload=payload
+    )
+
+    if status_code < 200 or status_code >= 300 or not data.get("success", False):
+        raise RuntimeError(
+            data.get("message", "카메라 역할 설정 저장에 실패했습니다.")
+        )
+
+    return data.get("camera_config")
+
+# ==========================================
 # 촬영 시작 요청 함수
 # ==========================================
 def start_capture(payload):
@@ -78,3 +151,97 @@ def stop_capture():
         raise RuntimeError("촬영 중지 요청에 실패했습니다.")
 
     return data
+
+
+# ==========================================
+# 카메라 미리보기 시작 요청 함수
+# ==========================================
+def start_preview():
+    status_code, data = _request_json(
+        "/preview/start",
+        method="POST"
+    )
+
+    if (
+        status_code < 200
+        or status_code >= 300
+        or not data.get("success", False)
+    ):
+        raise RuntimeError(
+            data.get("message", "카메라 미리보기 시작에 실패했습니다.")
+        )
+
+    return data
+
+
+# ==========================================
+# 카메라 미리보기 중지 요청 함수
+# ==========================================
+def stop_preview():
+    status_code, data = _request_json(
+        "/preview/stop",
+        method="POST"
+    )
+
+    if (
+        status_code < 200
+        or status_code >= 300
+        or not data.get("success", False)
+    ):
+        raise RuntimeError(
+            data.get("message", "카메라 미리보기 중지에 실패했습니다.")
+        )
+
+    return data
+
+
+# ==========================================
+# 카메라 최신 미리보기 프레임 조회 함수
+# ==========================================
+def get_preview_frame(view):
+    # Side / Top 이외의 요청은 차단
+    if view not in ("side", "top"):
+        raise ValueError("잘못된 카메라 구분입니다.")
+
+    url = "http://{}:{}/preview/frame/{}".format(
+        SERVER_HOST,
+        SERVER_PORT,
+        view
+    )
+
+    request = Request(
+        url,
+        headers={"Accept": "image/jpeg"},
+        method="GET"
+    )
+
+    try:
+        with urlopen(request, timeout=SERVER_TIMEOUT) as response:
+
+            # 아직 새로운 프레임이 준비되지 않은 경우
+            if response.status == 204:
+                return None
+
+            # JPEG 이미지 데이터 반환
+            if response.status == 200:
+                return response.read()
+
+            raise RuntimeError("미리보기 프레임 조회에 실패했습니다.")
+
+    except HTTPError as error:
+        raw = error.read().decode("utf-8", errors="replace")
+
+        try:
+            data = json.loads(raw) if raw else {}
+        except ValueError:
+            data = {}
+
+        raise RuntimeError(
+            data.get("message", "미리보기 프레임 조회에 실패했습니다.")
+        )
+
+    except (URLError, TimeoutError, OSError) as error:
+        raise RuntimeError(
+            "서버에 연결할 수 없습니다. 서버 주소와 네트워크를 확인해 주세요.\n"
+            "상세 오류: {}".format(error)
+        )

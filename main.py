@@ -5,7 +5,8 @@ from state import AppState
 from ui.common import configure_style
 from ui.layout import build_header, build_main
 from ui import system_status, server_connection, ftp_settings, save_path
-from ui import capture_settings, storage_mode, capture_control
+from ui import capture_settings, storage_mode, capture_control, camera_settings
+from ui import camera_preview
 from ui import recent_photos, notifications
 from services.websocket_client import WebSocketClient
 from services.api_client import get_server_status, stop_capture
@@ -42,11 +43,13 @@ class CameraManagerApp:
         system_status.build(left, self)
         server_connection.build(left, self)
         ftp_settings.build(left, self)
-        save_path.build(left, self)
+        camera_settings.build(left, self)
 
         # 중앙 UI 구성(촬영 설정, 저장 방식, 촬영 제어)
-        capture_settings.build(center, self)
         storage_mode.build(center, self)
+        save_path.build(center, self)
+        camera_preview.build(center, self)
+        capture_settings.build(center, self)
         capture_control.build(center, self)
 
         # 우측 UI 구성(최근 촬영 사진, 알림)
