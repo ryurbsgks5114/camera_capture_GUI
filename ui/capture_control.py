@@ -1,5 +1,7 @@
+
 import tkinter as tk
 import threading
+
 from config import WHITE, BORDER, TEXT, GREEN, GRAY, GRAY_LIGHT, RED, BLUE
 from services.capture_start_validator import validate_capture_start_settings
 from services.api_client import (
@@ -8,76 +10,78 @@ from services.api_client import (
 )
 from ui.common import create_panel
 
+
 # ==========================================
 # 촬영 제어 UI 및 기능 함수
 # ==========================================
 def build(parent, app):
     # 상위 패널 생성
     panel = create_panel(parent, "촬영 제어")
-    panel.configure(height=460)
+    panel.configure(height=120)
     panel.pack(fill="both", expand=False, pady=5)
     panel.pack_propagate(False)
 
     # 버튼 및 내부 바디 생성
     body = tk.Frame(panel, bg=WHITE)
-    body.pack(fill="both", expand=True, padx=18, pady=14)
+    body.pack(fill="both", expand=True, padx=18, pady=9)
     app.control_body = body
 
     # ==========================================
     # 촬영 상태별 UI 생성 함수
     # ==========================================
     def create_capture_state(title, status_color, card_bg, button_text, button_bg, show_details):
-        # 프레임 생성
-        card = tk.Frame(body, bg=card_bg, highlightbackground=BORDER, highlightthickness=1)
+        # 가로형 상태 영역 생성
+        card = tk.Frame(
+            body,
+            bg=card_bg,
+            highlightbackground=BORDER,
+            highlightthickness=1,
+            height=56
+        )
+        card.pack_propagate(False)
 
-        # 상태 표시 등, 상태 타이틀 라벨 생성
+        # 왼쪽 상태 표시 영역
+        status_frame = tk.Frame(card, bg=card_bg)
+        status_frame.pack(side="left", fill="y", padx=(12, 0))
+
+        # 상태 원형 표시
         tk.Label(
-            card,
+            status_frame,
             text="●",
             bg=card_bg,
             fg=status_color,
-            font=("Arial", 25)
-        ).pack(pady=(16, 0))
+            font=("Arial", 12)
+        ).pack(side="left", padx=(0, 7), pady=(0, 4))
+
+        # 상태 텍스트
         tk.Label(
-            card,
+            status_frame,
             text=title,
             bg=card_bg,
             fg=status_color,
-            font=("Malgun Gothic", 14, "bold")
-        ).pack(pady=4)
+            font=("Malgun Gothic", 10, "bold"),
+            anchor="center"
+        ).pack(side="left")
 
         # 촬영 중인 경우 상세 설정 정보 표시
         if show_details:
             tk.Label(
-                card,
-                text="촬영 시작 시간",
-                bg=card_bg,
-                fg=TEXT,
-                font=("Malgun Gothic", 8)
-            ).pack(pady=(10, 0))
-            tk.Label(
-                card,
+                status_frame,
                 textvariable=app.state.start_time_display,
                 bg=card_bg,
                 fg=TEXT,
-                font=("Malgun Gothic", 10, "bold")
-            ).pack()
-            tk.Label(
-                card,
-                text="촬영 간격",
-                bg=card_bg,
-                fg=TEXT,
                 font=("Malgun Gothic", 8)
-            ).pack(pady=(5, 0))
+            ).pack(side="left", padx=(12, 0))
+
             tk.Label(
-                card,
+                status_frame,
                 textvariable=app.state.interval_display,
                 bg=card_bg,
                 fg=TEXT,
-                font=("Malgun Gothic", 10, "bold")
-            ).pack()
+                font=("Malgun Gothic", 8)
+            ).pack(side="left", padx=(8, 0))
 
-        # 제어 버튼 생성(촬영 시작 / 촬영 중지)
+        # 오른쪽 제어 버튼
         button = tk.Button(
             card,
             text=button_text,
@@ -88,20 +92,34 @@ def build(parent, app):
             activeforeground=WHITE,
             relief="flat",
             bd=0,
-            font=("Malgun Gothic", 11, "bold"),
-            padx=15,
-            pady=10
+            font=("Malgun Gothic", 9, "bold"),
+            padx=10,
+            pady=5
         )
-        button.pack(fill="x", padx=16, pady=(12, 16))
+        button.pack(side="right", padx=8, pady=5)
 
         return card, button
 
     # 대기 중 상태 UI 생성
-    idle_card, idle_button = create_capture_state("대기 중", GRAY, GRAY_LIGHT, "▶  촬영 시작", BLUE, False)
-    idle_card.pack(fill="both", expand=True)
+    idle_card, idle_button = create_capture_state(
+        "대기 중",
+        GRAY,
+        GRAY_LIGHT,
+        "▶ 촬영 시작",
+        BLUE,
+        False
+    )
+    idle_card.pack(fill="x", expand=True)
 
     # 촬영 중 상태 UI 생성
-    running_card, running_button = create_capture_state("촬영 중", GREEN, "#EDF9F2", "■  촬영 중지", RED, True)
+    running_card, running_button = create_capture_state(
+        "촬영 중",
+        GREEN,
+        "#EDF9F2",
+        "■ 촬영 중지",
+        RED,
+        False
+    )
     running_card.pack_forget()
 
     # ==========================================
@@ -125,12 +143,12 @@ def build(parent, app):
 
         # 대기 중 버튼 숨기고 촬영 중 버튼 표시
         idle_card.pack_forget()
-        running_card.pack(fill="both", expand=True)
+        running_card.pack(fill="x", expand=True)
 
         # 촬영 중지 버튼 상태 초기화
         running_button.configure(
             state=tk.NORMAL,
-            text="■  촬영 중지"
+            text="■ 촬영 중지"
         )
 
         # 시스템 상태 업데이트
@@ -153,12 +171,12 @@ def build(parent, app):
 
         # 촬영 중 버튼 숨기고 대기 중 버튼 표시
         running_card.pack_forget()
-        idle_card.pack(fill="both", expand=True)
+        idle_card.pack(fill="x", expand=True)
 
         # 버튼 상태 복구
         idle_button.configure(
             state=tk.NORMAL,
-            text="▶  촬영 시작"
+            text="▶ 촬영 시작"
         )
 
         app.state.capture_status.set("대기 중")
@@ -201,14 +219,13 @@ def build(parent, app):
             capture_state = "idle"
             idle_button.configure(
                 state=tk.NORMAL,
-                text="▶  촬영 시작"
+                text="▶ 촬영 시작"
             )
 
             app.notify(message, RED)
-
             return
 
-        # GUI에서 검증을 통과하면 라즈베리파이 서버에 실제 촬영 시작 요청
+        # GUI에서 검증을 통과하면 서버에 실제 촬영 시작 요청
         payload = {
             "start_time": "{}:{}:{}".format(
                 app.state.hour_var.get().strip(),
@@ -235,22 +252,22 @@ def build(parent, app):
 
         app.notify("라즈베리파이에 촬영 시작 요청을 보내는 중입니다...", BLUE)
 
-        # ==========================================
         # 네트워크 요청 중 GUI가 멈추지 않도록 별도 스레드에서 요청
-        # ==========================================
         def send_start_request():
             try:
                 response = request_start_capture(payload)
             except Exception as error:
-                # 에러 발생 시 메인 스레드에서 실패 핸들러 호출
-                app.root.after(0, lambda error=str(error): handle_start_failure(error))
-
+                app.root.after(
+                    0,
+                    lambda error=str(error): handle_start_failure(error)
+                )
                 return
 
-            # 성공 시 메인 스레드에서 성공 핸들러 호출
-            app.root.after(0, lambda response=response: handle_start_success(response))
+            app.root.after(
+                0,
+                lambda response=response: handle_start_success(response)
+            )
 
-        # 데몬 스레드로 비동기 네트워크 요청 실행
         threading.Thread(target=send_start_request, daemon=True).start()
 
     # ==========================================
@@ -266,23 +283,25 @@ def build(parent, app):
     def handle_start_failure(message):
         nonlocal capture_state
         capture_state = "idle"
-        
+
         idle_button.configure(
             state=tk.NORMAL,
-            text="▶  촬영 시작"
+            text="▶ 촬영 시작"
         )
 
         # 발생한 에러 메시지가 서버 연결 실패 관련인지 확인
         server_unreachable = message.startswith("서버에 연결할 수 없습니다.")
 
-        # 서버 연결 실패 여부에 따라 시스템 상태 업데이트
         if server_unreachable:
             app.state.server_status.set("연결 실패")
         else:
             app.state.server_status.set("연결됨")
 
-            # FTP 저장 모드이면서 에러 메시지에 FTP 관련 내용이 포함된 경우 FTP 연결 상태도 연결 실패로 변경
-            if (app.state.storage_mode.get() in ("ftp", "both") and "FTP" in message.upper()):
+            # FTP 저장 모드에서 FTP 관련 오류가 발생한 경우
+            if (
+                app.state.storage_mode.get() in ("ftp", "both")
+                and "FTP" in message.upper()
+            ):
                 app.state.ftp_status.set("연결 실패")
 
         app.refresh_system_status()
@@ -298,7 +317,6 @@ def build(parent, app):
         if capture_state != "running":
             return
 
-        # 이후 작업이 진행되는 동안 중복 클릭 차단
         capture_state = "stopping"
         running_button.configure(
             state=tk.DISABLED,
@@ -307,22 +325,22 @@ def build(parent, app):
 
         app.notify("라즈베리파이에 촬영 중지 요청을 보내는 중입니다...", BLUE)
 
-        # ==========================================
         # 네트워크 요청 중 GUI가 멈추지 않도록 별도 스레드에서 요청
-        # ==========================================
         def send_stop_request():
             try:
                 response = request_stop_capture()
             except Exception as error:
-                # 에러 발생 시 메인 스레드에서 실패 핸들러 호출
-                app.root.after(0, lambda error=str(error): handle_stop_failure(error))
-                
+                app.root.after(
+                    0,
+                    lambda error=str(error): handle_stop_failure(error)
+                )
                 return
 
-            # 성공 시 메인 스레드에서 성공 핸들러 호출
-            app.root.after(0, lambda response=response: handle_stop_success(response))
+            app.root.after(
+                0,
+                lambda response=response: handle_stop_success(response)
+            )
 
-        # 데몬 스레드로 비동기 네트워크 요청 실행
         threading.Thread(target=send_stop_request, daemon=True).start()
 
     # ==========================================
@@ -341,7 +359,7 @@ def build(parent, app):
 
         running_button.configure(
             state=tk.NORMAL,
-            text="■  촬영 중지"
+            text="■ 촬영 중지"
         )
 
         app.notify(message, RED)

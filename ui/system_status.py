@@ -1,80 +1,133 @@
+
 import tkinter as tk
+
 from config import WHITE, TEXT, GREEN, GRAY, RED
 from ui.common import create_panel
 
+
 # ==========================================
-# 상태에 따라 해당하는 색상 코드를 반환하는 함수
+# 상태에 따라 색상 코드 반환
 # ==========================================
 def get_status_color(status):
-    if status in ("연결됨", "촬영 중"):
+    if status in ("연결 성공", "연결됨", "촬영 중"):
         return GREEN
+
     if status == "연결 실패":
         return RED
 
     return GRAY
 
+
 # ==========================================
-# 시스템 상태 UI를 생성하는 함수
+# 시스템 상태 UI 생성
 # ==========================================
 def build(parent, app):
-    # 상위 패널 생성
     panel = create_panel(parent, "시스템 상태")
-    panel.pack(fill="x", pady=(0, 10))
 
-    # 상태 항목들이 렌더링될 내부 프레임 생성
-    app.system_body = tk.Frame(panel, bg=WHITE)
-    app.system_body.pack(fill="x", padx=20, pady=8)
+    # 시스템 상태 패널의 세로 여백 축소
+    panel.pack(fill="x", pady=(0, 5))
 
-    # 최초 패널 생성 시 상태 목록 렌더링 수행
+    # 공통 패널 헤더 여백 축소
+    header = panel.winfo_children()[0]
+    header.pack_configure(
+        padx=12,
+        pady=(7, 4)
+    )
+
+    # 상태 항목 표시 영역
+    app.system_body = tk.Frame(
+        panel,
+        bg=WHITE
+    )
+    app.system_body.pack(
+        fill="x",
+        padx=12,
+        pady=(4, 6)
+    )
+
+    # 최초 상태 표시
     refresh(app)
 
     return panel
 
+
 # ==========================================
-# 시스템 상태 정보를 최신 값으로 갱신하여 다시 렌더링 하는 함수
+# 시스템 상태 갱신
 # ==========================================
 def refresh(app):
-    # 기존에 그려져 있던 하위 위젯들을 모두 초기화
+    # 기존 상태 위젯 초기화
     for widget in app.system_body.winfo_children():
         widget.destroy()
 
-    # 표시할 시스템 상태 항목과 현재 상태값 매핑 목록
     statuses = [
-        ("서버 연결 상태", app.state.server_status.get()),
-        ("WebSocket 상태", app.state.websocket_status.get()),
+        ("서버 상태", app.state.server_status.get()),
+        ("WS 상태", app.state.websocket_status.get()),
         ("촬영 상태", app.state.capture_status.get()),
-        ("FTP 연결 상태", app.state.ftp_status.get())
+        ("FTP 상태", app.state.ftp_status.get())
     ]
 
-    # 상태 항목별로 행 프레임, 상태 표시용 원, 텍스트 라벨 생성 및 배치
-    for label, value in statuses:
-        row = tk.Frame(app.system_body, bg=WHITE)
-        row.pack(fill="x", pady=8)
+    # 2열 배치
+    for index, (label, value) in enumerate(statuses):
+        row = index // 2
+        column = index % 2
 
-        # 항목 이름 생성
+        item = tk.Frame(
+            app.system_body,
+            bg=WHITE
+        )
+        item.grid(
+            row=row,
+            column=column,
+            sticky="w",
+            padx=(0, 8),
+            pady=3
+        )
+
+        # 상태 항목 이름
         tk.Label(
-            row,
+            item,
             text=label,
-            width=15,
+            width=8,
             anchor="w",
             bg=WHITE,
             fg=TEXT,
-            font=("Malgun Gothic", 10)
+            font=("Malgun Gothic", 9)
         ).pack(side="left")
 
-        # 상태에 따른 색상 코드 가져오기
+        # 상태에 따른 색상
         color = get_status_color(value)
 
-        # 신호등 형태의 상태 표시용 원 생성
-        canvas = tk.Canvas(row, width=15, height=15, bg=WHITE, highlightthickness=0)
-        canvas.pack(side="left", padx=(0, 7))
-        canvas.create_oval(3, 3, 12, 12, fill=color, outline=color)
+        # 상태 표시 원
+        canvas = tk.Canvas(
+            item,
+            width=12,
+            height=12,
+            bg=WHITE,
+            highlightthickness=0
+        )
+        canvas.pack(
+            side="left",
+            padx=(0, 5)
+        )
 
-        # 상태 텍스트 생성
+        canvas.create_oval(
+            2,
+            2,
+            10,
+            10,
+            fill=color,
+            outline=color
+        )
+
+        # 상태 텍스트
         tk.Label(
-            row,
+            item,
             text=value,
             bg=WHITE,
             fg=color,
-            font=("Malgun Gothic", 10, "bold")
+            font=("Malgun Gothic", 9, "bold")
         ).pack(side="left")
+
+    # 두 열의 너비를 동일하게 유지
+    app.system_body.grid_columnconfigure(0, weight=1)
+    app.system_body.grid_columnconfigure(1, weight=1)
