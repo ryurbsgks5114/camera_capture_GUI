@@ -2,16 +2,28 @@
 import threading
 import tkinter as tk
 
-from config import APP_TITLE, WINDOW_GEOMETRY, WINDOW_MIN_SIZE, BG, GREEN, RED
+from config import (
+    APP_TITLE,
+    WINDOW_GEOMETRY,
+    WINDOW_MIN_SIZE,
+    BG,
+    GREEN,
+    RED,
+    FTP_HOST,
+    FTP_PORT,
+    FTP_USER,
+    FTP_PASSWORD
+)
 from state import AppState
 from ui.common import configure_style
 from ui.layout import build_header, build_main
-from ui import system_status, ftp_settings, save_path
+from ui import system_status, save_path
 from ui import capture_settings, storage_mode, capture_control, camera_settings
 from ui import camera_preview
 from ui import recent_photos, notifications
 from services.websocket_client import WebSocketClient
 from services.api_client import get_server_status, stop_capture
+from services.ftp_client import test_ftp_connection
 
 
 # ==========================================
@@ -44,12 +56,11 @@ class CameraManagerApp:
         build_header(root)
         _, left, center, right = build_main(root)
 
-        # 좌측 UI 구성(시스템 상태, FTP 설정, 저장 경로)
+        # 좌측 UI 구성(시스템 상태, 카메라 설정)
         system_status.build(left, self)
-        ftp_settings.build(left, self)
         camera_settings.build(left, self)
 
-        # 중앙 UI 구성(촬영 설정, 저장 방식, 촬영 제어)
+        # 중앙 UI 구성(저장 경로, 촬영 설정, 저장 방식, 촬영 제어)
         storage_mode.build(center, self)
         save_path.build(center, self)
         camera_preview.build(center, self)
@@ -68,8 +79,9 @@ class CameraManagerApp:
         )
         self.websocket_client.start()
 
-        # GUI 최초 실행 시 서버 연결 상태 확인
+        # GUI 최초 실행 시 서버 및 FTP 연결 상태 확인
         self._check_initial_server_connection()
+        self._check_initial_ftp_connection()
 
     # ==========================================
     # GUI 최초 실행 시 서버 연결 상태 확인
@@ -120,6 +132,53 @@ class CameraManagerApp:
             self.state.capture_status.set("촬영 중")
         else:
             self.state.capture_status.set("대기 중")
+
+        self.refresh_system_status()
+
+    # ==========================================
+    # GUI 최초 실행 시 FTP 연결 상태 확인
+    # ==========================================
+    def _check_initial_ftp_connection(self):
+
+        # FTP 연결 확인 중 상태 표시
+        self.state.ftp_status.set("연결 확인 중...")
+        self.refresh_system_status()
+
+        # 백그라운드 스레드에서 FTP 연결 확인
+        def request_ftp_connection():
+            success, message = test_ftp_connection(
+                host=FTP_HOST,
+                port=FTP_PORT,
+                user=FTP_USER,
+                password=FTP_PASSWORD,
+                remote_path=self.state.ftp_path.get().strip(),
+                timeout=5
+            )
+
+            # Tkinter UI 업데이트는 메인 스레드에서 처리
+            self.root.after(
+                0,
+                lambda: self._apply_initial_ftp_status(
+                    success,
+                    message
+                )
+            )
+
+        threading.Thread(
+            target=request_ftp_connection,
+            name="InitialFTPConnectionCheck",
+            daemon=True
+        ).start()
+
+    # ==========================================
+    # 최초 FTP 연결 확인 결과 적용
+    # ==========================================
+    def _apply_initial_ftp_status(self, success, message):
+
+        if success:
+            self.state.ftp_status.set("연결 성공")
+        else:
+            self.state.ftp_status.set("연결 실패")
 
         self.refresh_system_status()
 
