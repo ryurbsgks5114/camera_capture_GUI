@@ -494,17 +494,6 @@ def build(parent, app):
             fg=BLUE
         )
 
-        if USE_TEST_CAMERAS:
-            app.root.after(
-                100,
-                lambda: finish_request(
-                    _TEST_CAMERAS,
-                    _TEST_CAMERA_CONFIG,
-                    None
-                )
-            )
-            return
-
         def worker():
             try:
                 cameras = get_cameras()
@@ -558,27 +547,6 @@ def build(parent, app):
             fg=BLUE
         )
 
-        if USE_TEST_CAMERAS:
-            _TEST_CAMERA_CONFIG["side_camera_id"] = side_camera_id
-            _TEST_CAMERA_CONFIG["top_camera_id"] = top_camera_id
-
-            for camera in _TEST_CAMERAS:
-                camera["role"] = None
-
-                if camera["location_id"] == side_camera_id:
-                    camera["role"] = "side"
-
-                elif camera["location_id"] == top_camera_id:
-                    camera["role"] = "top"
-
-            finish_request(
-                _TEST_CAMERAS,
-                _TEST_CAMERA_CONFIG,
-                None,
-                notice
-            )
-            return
-
         def worker():
             try:
                 save_camera_config(
@@ -619,44 +587,3 @@ def build(parent, app):
     app.root.after(100, refresh_camera_list)
 
     return panel
-
-
-# ==========================================
-# GUI 테스트용 가상 카메라 설정
-# ==========================================
-# True  : 가상 카메라 4개 표시
-# False : 실제 서버에서 카메라 검색
-
-USE_TEST_CAMERAS = True
-
-_TEST_CAMERAS = [
-    {
-        "location_id": "TEST-CAMERA-001",
-        "name": "UHD2160",
-        "available": True,
-        "role": "side"
-    },
-    {
-        "location_id": "TEST-CAMERA-002",
-        "name": "USB Camera Full HD",
-        "available": True,
-        "role": "top"
-    },
-    {
-        "location_id": "TEST-CAMERA-003",
-        "name": "USB Camera HD",
-        "available": True,
-        "role": None
-    },
-    {
-        "location_id": "TEST-CAMERA-004",
-        "name": "USB Camera Virtual Device",
-        "available": True,
-        "role": None
-    }
-]
-
-_TEST_CAMERA_CONFIG = {
-    "side_camera_id": "TEST-CAMERA-001",
-    "top_camera_id": "TEST-CAMERA-002"
-}
