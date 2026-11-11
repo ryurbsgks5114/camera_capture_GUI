@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from config import WHITE, TEXT, BLUE
-from ui.common import create_panel
+from common.ui.common import create_panel
 
 
 # ==========================================

@@ -2,7 +2,7 @@
 import tkinter as tk
 
 from config import WHITE, TEXT, GREEN, GRAY, RED
-from ui.common import create_panel
+from common.ui.common import create_panel
 
 
 # ==========================================

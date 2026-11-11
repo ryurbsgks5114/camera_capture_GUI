@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from datetime import datetime
 from config import WHITE, GRAY, TEXT
-from ui.common import create_panel
+from common.ui.common import create_panel
 
 # ==========================================
 # 알림 UI 및 기능 함수

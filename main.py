@@ -15,15 +15,25 @@ from config import (
     FTP_PASSWORD
 )
 from state import AppState
-from ui.common import configure_style
-from ui.layout import build_header, build_main
-from ui import system_status, save_path
-from ui import capture_settings, storage_mode, capture_control, camera_settings
-from ui import camera_preview
-from ui import recent_photos, notifications
-from services.websocket_client import WebSocketClient
-from services.api_client import get_server_status, stop_capture
-from services.ftp_client import test_ftp_connection
+
+from camera.preview.ui import camera_preview
+from camera.setting.ui import camera_settings
+from capture.control.ui import capture_control
+from capture.recent_photos.ui import recent_photos
+from capture.setting.ui import capture_settings
+from common.ui.common import configure_style
+from common.ui.layout import build_header, build_main
+from notification.ui import notifications
+from storage.mode.ui import storage_mode
+from storage.path.ui import save_path
+from system.status.ui import system_status
+
+from storage.path.service.ftp_client import test_ftp_connection
+
+from common.websocket.websocket_client import WebSocketClient
+
+from capture.control.api.capture_api import stop_capture
+from system.status.api.system_api import get_server_status
 
 
 # ==========================================

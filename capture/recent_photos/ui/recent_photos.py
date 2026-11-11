@@ -4,7 +4,7 @@ import tkinter as tk
 from pathlib import Path
 from PIL import Image, ImageTk
 from config import SUBTEXT
-from ui.common import create_panel
+from common.ui.common import create_panel
 
 # 기본 사진 이미지 경로
 PLACEHOLDER_PATH = (

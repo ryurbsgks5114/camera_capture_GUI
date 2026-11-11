@@ -14,13 +14,13 @@ from config import (
     GRAY
 )
 
-from services.api_client import (
+from camera.setting.api.camera_api import (
     get_cameras,
     get_camera_config,
     save_camera_config
 )
 
-from ui.common import create_panel
+from common.ui.common import create_panel
 
 
 # ==========================================

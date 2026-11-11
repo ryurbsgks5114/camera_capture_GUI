@@ -1,6 +1,6 @@
 
-from services.capture_settings_validator import validate_capture_settings
-from services.path_validator import validate_local_path
+from capture.setting.service.capture_settings_validator import validate_capture_settings
+from storage.path.service.path_validator import validate_local_path
 
 
 # ==========================================

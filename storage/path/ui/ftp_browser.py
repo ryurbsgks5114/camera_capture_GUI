@@ -3,7 +3,7 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 from config import WHITE, RED, TEXT, SUBTEXT, BORDER, BLUE
-from services.ftp_client import list_ftp_directories 
+from storage.path.service.ftp_client import list_ftp_directories
     
 # ==========================================    
 # FTP 서버의 디렉토리를 탐색하고 선택할 수 있는 팝업 창을 생성하는 함수

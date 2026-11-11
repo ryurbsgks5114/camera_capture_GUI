@@ -16,12 +16,12 @@ from config import (
     FTP_USER,
     FTP_PASSWORD
 )
-from services.capture_start_validator import validate_capture_start_settings
-from services.api_client import (
+from capture.control.service.capture_start_validator import validate_capture_start_settings
+from capture.control.api.capture_api import (
     start_capture as request_start_capture,
     stop_capture as request_stop_capture,
 )
-from ui.common import create_panel
+from common.ui.common import create_panel
 
 
 # ==========================================

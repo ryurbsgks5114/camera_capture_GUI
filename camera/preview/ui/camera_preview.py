@@ -18,13 +18,13 @@ from config import (
     BORDER
 )
 
-from services.api_client import (
+from camera.preview.api.preview_api import (
     start_preview as request_start_preview,
     stop_preview as request_stop_preview,
     get_preview_frame
 )
 
-from ui.common import create_panel
+from common.ui.common import create_panel
 
 
 # ==========================================

@@ -2,7 +2,7 @@
 import tkinter as tk
 
 from config import WHITE, TEXT
-from ui.common import create_panel
+from common.ui.common import create_panel
 
 
 # ==========================================

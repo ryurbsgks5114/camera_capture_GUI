@@ -1,8 +1,8 @@
 
 from tkinter import filedialog
 from config import (WHITE, RED, FTP_HOST, FTP_PORT, FTP_USER, FTP_PASSWORD)
-from ui.common import create_panel, create_field
-from ui.ftp_browser import open_ftp_browser
+from common.ui.common import create_panel, create_field
+from storage.path.ui.ftp_browser import open_ftp_browser
 
 
 # ==========================================
