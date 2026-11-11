@@ -1,5 +1,8 @@
+
 import threading
 import tkinter as tk
+from tkinter import ttk
+import tkinter.font as tkfont
 
 from config import (
     WHITE,
@@ -8,8 +11,7 @@ from config import (
     BLUE,
     GREEN,
     RED,
-    GRAY,
-    BLUE_LIGHT
+    GRAY
 )
 
 from services.api_client import (
@@ -22,13 +24,13 @@ from ui.common import create_panel
 
 
 # ==========================================
-# 연결된 카메라 목록 UI 및 역할 설정 기능
+# 카메라 설정 UI
 # ==========================================
 def build(parent, app):
     panel = create_panel(
         parent,
-        "카메라 연결 상태",
-        "↻  목록 새로고침",
+        "카메라 설정",
+        "⟳  목록 새로고침",
         lambda: refresh_camera_list()
     )
     panel.pack(fill="x", pady=5)
@@ -36,78 +38,239 @@ def build(parent, app):
     body = tk.Frame(panel, bg=WHITE)
     body.pack(fill="x", padx=20, pady=10)
 
+    # ==========================================
+    # 드롭다운 스타일
+    # ==========================================
+    combo_style = ttk.Style()
+
+    combo_style.configure(
+        "CameraRole.TCombobox",
+        font=("Malgun Gothic", 9),
+        padding=(8, 5),
+        foreground=TEXT,
+        background=WHITE,
+        fieldbackground=WHITE,
+        bordercolor="#D8E2EF",
+        lightcolor="#D8E2EF",
+        darkcolor="#D8E2EF",
+        relief="solid",
+        arrowsize=12
+    )
+
+    combo_style.map(
+        "CameraRole.TCombobox",
+        fieldbackground=[
+            ("readonly", WHITE),
+            ("disabled", "#F5F7FA")
+        ],
+        foreground=[
+            ("readonly", TEXT),
+            ("disabled", GRAY)
+        ],
+        selectbackground=[
+            ("readonly", WHITE)
+        ],
+        selectforeground=[
+            ("readonly", TEXT)
+        ]
+    )
+
+    # ==========================================
+    # 촬영 상태 잠금 관리
+    # ==========================================
+    is_locked = False
+    role_combos = []
+
+    def set_camera_settings_locked(locked):
+        nonlocal is_locked
+
+        is_locked = bool(locked)
+
+        # 목록 새로고침 버튼 잠금
+        if panel.header_button:
+            panel.header_button.configure(
+                state="disabled" if is_locked else "normal",
+                cursor="arrow" if is_locked else "hand2"
+            )
+
+        # 모든 카메라 역할 드롭다운 잠금
+        for combo in role_combos:
+            if combo.winfo_exists():
+                combo.configure(
+                    state="disabled" if is_locked else "readonly"
+                )
+
+    # 기존 촬영 설정 잠금 콜백 목록에 등록
+    if not hasattr(app, "capture_settings_lockers"):
+        app.capture_settings_lockers = []
+
+    app.capture_settings_lockers.append(
+        set_camera_settings_locked
+    )
+
+    # ==========================================
+    # 검색된 카메라 대수
+    # ==========================================
     status_label = tk.Label(
         body,
         text="카메라 목록을 확인하고 있습니다...",
         bg=WHITE,
-        fg=SUBTEXT,
+        fg=GREEN,
         anchor="w",
-        font=("Malgun Gothic", 9)
+        font=("Malgun Gothic", 9, "bold")
     )
-    status_label.pack(fill="x", pady=(0, 5))
+    status_label.pack(fill="x", pady=(0, 7))
 
-    camera_list_frame = tk.Frame(body, bg=WHITE)
-    camera_list_frame.pack(fill="x")
+    # ==========================================
+    # 스크롤 가능한 카메라 목록
+    # ==========================================
+    list_container = tk.Frame(body, bg=WHITE)
+    list_container.pack(fill="x")
 
-    # 현재 저장된 역할 설정
+    camera_canvas = tk.Canvas(
+        list_container,
+        bg=WHITE,
+        highlightthickness=0,
+        height=140
+    )
+    camera_canvas.pack(side="left", fill="both", expand=True)
+
+    scrollbar = tk.Scrollbar(
+        list_container,
+        orient="vertical",
+        command=camera_canvas.yview
+    )
+    scrollbar.pack(side="right", fill="y")
+
+    camera_canvas.configure(
+        yscrollcommand=scrollbar.set
+    )
+
+    camera_list_frame = tk.Frame(
+        camera_canvas,
+        bg=WHITE
+    )
+
+    camera_window = camera_canvas.create_window(
+        (0, 0),
+        window=camera_list_frame,
+        anchor="nw"
+    )
+
+    def update_scroll_region(event=None):
+        camera_canvas.configure(
+            scrollregion=camera_canvas.bbox("all")
+        )
+
+    camera_list_frame.bind(
+        "<Configure>",
+        update_scroll_region
+    )
+
+    camera_canvas.bind(
+        "<Configure>",
+        lambda event: camera_canvas.itemconfigure(
+            camera_window,
+            width=event.width
+        )
+    )
+
+    # ==========================================
+    # 목록 내부 마우스 휠 스크롤
+    # ==========================================
+    def on_mousewheel(event):
+        if not camera_canvas.winfo_exists():
+            return "break"
+
+        camera_canvas.yview_scroll(
+            int(-1 * (event.delta / 120)),
+            "units"
+        )
+
+        return "break"
+
+    def bind_scroll_to_widget(widget):
+        widget.bind(
+            "<MouseWheel>",
+            on_mousewheel
+        )
+
+        for child in widget.winfo_children():
+            bind_scroll_to_widget(child)
+
+    # ==========================================
+    # 카메라 역할 설정
+    # ==========================================
     camera_config = {
         "side_camera_id": None,
         "top_camera_id": None
     }
 
-    # 서버 요청 중복 실행 방지
     request_in_progress = False
 
     # ==========================================
-    # 역할 이름 변환
+    # 카메라 역할 변경
     # ==========================================
-    def get_role_text(role):
-        if role == "side":
-            return "사이드 카메라"
-        elif role == "top":
-            return "탑 카메라"
+    def change_camera_role(camera_id, selected_role):
+        # 촬영 중에는 역할 변경 차단
+        if is_locked:
+            return
 
-        return "역할 미지정"
+        if not camera_id:
+            return
 
-    # ==========================================
-    # 버튼 생성
-    # ==========================================
-    def create_action_button(parent, text, command, enabled=True):
-        return tk.Button(
-            parent,
-            text=text,
-            command=command,
-            state=tk.NORMAL if enabled else tk.DISABLED,
-            bg=WHITE,
-            fg=BLUE if enabled else GRAY,
-            activebackground=BLUE_LIGHT,
-            activeforeground=BLUE,
-            relief="solid",
-            bd=1,
-            highlightthickness=0,
-            font=("Malgun Gothic", 8, "bold"),
-            padx=8,
-            pady=4,
-            cursor="hand2"
+        if selected_role not in ("Side", "Top", "미지정"):
+            return
+
+        side_camera_id = camera_config.get("side_camera_id")
+        top_camera_id = camera_config.get("top_camera_id")
+
+        if selected_role == "Side":
+            side_camera_id = camera_id
+
+            if top_camera_id == camera_id:
+                top_camera_id = None
+
+        elif selected_role == "Top":
+            top_camera_id = camera_id
+
+            if side_camera_id == camera_id:
+                side_camera_id = None
+
+        elif selected_role == "미지정":
+            if side_camera_id == camera_id:
+                side_camera_id = None
+
+            if top_camera_id == camera_id:
+                top_camera_id = None
+
+        update_camera_config(
+            side_camera_id,
+            top_camera_id,
+            "카메라 역할을 변경했습니다."
         )
 
     # ==========================================
-    # 조회 결과에 맞춰 카메라 목록 다시 표시
+    # 카메라 목록 표시
     # ==========================================
     def render_cameras(cameras):
+        role_combos.clear()
+
         for widget in camera_list_frame.winfo_children():
             widget.destroy()
 
         if not cameras:
             tk.Label(
                 camera_list_frame,
-                text="연결된 카메라가 없습니다.",
+                text="검색된 카메라가 없습니다.",
                 bg=WHITE,
-                fg=RED,
+                fg=GRAY,
                 anchor="w",
                 font=("Malgun Gothic", 9)
-            ).pack(fill="x", pady=4)
+            ).pack(fill="x", pady=8)
 
+            update_scroll_region()
+            bind_scroll_to_widget(camera_list_frame)
             return
 
         for index, camera in enumerate(cameras, start=1):
@@ -115,131 +278,170 @@ def build(parent, app):
                 continue
 
             camera_id = camera.get("location_id")
-            available = camera.get("available") is True
 
             camera_name = str(
                 camera.get("name") or "이름 없는 카메라"
             )
 
-            role = camera.get("role")
+            if camera_id == camera_config.get("side_camera_id"):
+                current_role = "Side"
 
-            status_text = (
-                "촬영 가능"
-                if available
-                else "촬영 장치 확인 필요"
-            )
+            elif camera_id == camera_config.get("top_camera_id"):
+                current_role = "Top"
 
-            status_color = GREEN if available else RED
+            else:
+                current_role = "미지정"
 
-            # 카메라 한 대를 표시하는 영역
+            # ==================================
+            # 카메라 카드
+            # ==================================
             row = tk.Frame(
                 camera_list_frame,
-                bg=BLUE_LIGHT if available else WHITE,
+                bg=WHITE,
                 highlightbackground="#D8E2EF",
-                highlightthickness=1
+                highlightthickness=1,
+                height=52
             )
-            row.pack(fill="x", pady=3)
+            row.pack(fill="x", pady=2)
+            row.pack_propagate(False)
 
-            # ==================================
-            # 카메라 이름 및 연결 상태
-            # ==================================
-            info_frame = tk.Frame(
+            content = tk.Frame(
                 row,
-                bg=row.cget("bg")
+                bg=WHITE
             )
-            info_frame.pack(
-                fill="x",
-                padx=9,
-                pady=(7, 3)
+            content.pack(
+                fill="both",
+                expand=True,
+                padx=12
             )
-
-            tk.Label(
-                info_frame,
-                text="카메라 {}  |  {}".format(index, camera_name),
-                bg=row.cget("bg"),
-                fg=TEXT,
-                anchor="w",
-                font=("Malgun Gothic", 9, "bold")
-            ).pack(side="left", fill="x", expand=True)
-
-            tk.Label(
-                info_frame,
-                text=status_text,
-                bg=row.cget("bg"),
-                fg=status_color,
-                font=("Malgun Gothic", 8, "bold")
-            ).pack(side="right")
 
             # ==================================
-            # 현재 역할 표시
+            # 역할 드롭다운
             # ==================================
             role_frame = tk.Frame(
-                row,
-                bg=row.cget("bg")
+                content,
+                bg=WHITE
             )
-            role_frame.pack(
-                fill="x",
-                padx=9,
-                pady=(2, 7)
-            )
-
-            role_color = (
-                BLUE
-                if role in ("side", "top")
-                else GRAY
-            )
+            role_frame.pack(side="right")
 
             tk.Label(
                 role_frame,
-                text="현재 역할: {}".format(get_role_text(role)),
-                bg=row.cget("bg"),
-                fg=role_color,
-                font=("Malgun Gothic", 8, "bold")
-            ).pack(side="left", fill="x", expand=True)
+                text="역할:",
+                bg=WHITE,
+                fg=SUBTEXT,
+                font=("Malgun Gothic", 9)
+            ).pack(side="left", padx=(0, 7))
 
-            # ==================================
-            # Side / Top / 역할 해제 버튼
-            # ==================================
-            button_frame = tk.Frame(
+            role_combo = ttk.Combobox(
                 role_frame,
-                bg=row.cget("bg")
+                values=("Side", "Top", "미지정"),
+                state="disabled" if is_locked else "readonly",
+                width=10,
+                style="CameraRole.TCombobox"
             )
-            button_frame.pack(side="right")
+            role_combo.pack(side="left")
 
-            # 현재 Side로 지정된 카메라는 Side 버튼 비활성화
-            create_action_button(
-                button_frame,
-                "Side 지정",
-                lambda cid=camera_id: change_camera_role(
-                    cid,
-                    "side"
-                ),
-                enabled=available and role != "side"
-            ).pack(side="left", padx=2)
+            role_combo.set(current_role)
 
-            # 현재 Top으로 지정된 카메라는 Top 버튼 비활성화
-            create_action_button(
-                button_frame,
-                "Top 지정",
-                lambda cid=camera_id: change_camera_role(
-                    cid,
-                    "top"
-                ),
-                enabled=available and role != "top"
-            ).pack(side="left", padx=2)
+            role_combos.append(role_combo)
 
-            # 역할이 지정된 카메라만 해제 가능
-            create_action_button(
-                button_frame,
-                "해제",
-                lambda cid=camera_id: clear_camera_role(cid),
-                enabled=role in ("side", "top")
-            ).pack(side="left", padx=2)
+            role_combo.bind(
+                "<<ComboboxSelected>>",
+                lambda event, cid=camera_id, combo=role_combo:
+                    change_camera_role(
+                        cid,
+                        combo.get()
+                    )
+            )
+
+            # ==================================
+            # 카메라 번호 및 이름
+            # ==================================
+            full_camera_text = "카메라 {}  |  {}".format(
+                index,
+                camera_name
+            )
+
+            camera_font = tkfont.Font(
+                family="Malgun Gothic",
+                size=9,
+                weight="bold"
+            )
+
+            camera_label = tk.Label(
+                content,
+                text=full_camera_text,
+                bg=WHITE,
+                fg=TEXT,
+                anchor="w",
+                font=camera_font
+            )
+            camera_label.pack(
+                side="left",
+                fill="x",
+                expand=True,
+                padx=(0, 12)
+            )
+
+            def update_camera_name(
+                event,
+                label=camera_label,
+                full_text=full_camera_text,
+                font=camera_font
+            ):
+                available_width = event.width
+
+                if available_width <= 0:
+                    return
+
+                if font.measure(full_text) <= available_width:
+                    display_text = full_text
+
+                else:
+                    ellipsis = "..."
+
+                    if font.measure(ellipsis) > available_width:
+                        display_text = ""
+                    else:
+                        left = 0
+                        right = len(full_text)
+
+                        while left < right:
+                            middle = (left + right + 1) // 2
+                            candidate = full_text[:middle] + ellipsis
+
+                            if font.measure(candidate) <= available_width:
+                                left = middle
+                            else:
+                                right = middle - 1
+
+                        display_text = full_text[:left] + ellipsis
+
+                if label.cget("text") != display_text:
+                    label.configure(text=display_text)
+
+            camera_label.bind(
+                "<Configure>",
+                update_camera_name
+            )
+
+            role_combo.bind(
+                "<MouseWheel>",
+                on_mousewheel
+            )
+
+        update_scroll_region()
+        bind_scroll_to_widget(camera_list_frame)
 
     # ==========================================
-    # 서버 요청 완료 후 UI 갱신
+    # 조회 결과 UI 갱신
     # ==========================================
-    def finish_request(cameras, config, error_message, notice=None):
+    def finish_request(
+        cameras,
+        config,
+        error_message,
+        notice=None
+    ):
         nonlocal request_in_progress
         nonlocal camera_config
 
@@ -250,9 +452,7 @@ def build(parent, app):
 
         if error_message is not None:
             status_label.configure(
-                text="카메라 설정 처리에 실패했습니다. {}".format(
-                    error_message
-                ),
+                text="카메라 설정 처리에 실패했습니다.",
                 fg=RED
             )
 
@@ -264,19 +464,9 @@ def build(parent, app):
             "top_camera_id": None
         }
 
-        available_count = sum(
-            1
-            for camera in cameras
-            if isinstance(camera, dict)
-            and camera.get("available") is True
-        )
-
         status_label.configure(
-            text="검색된 카메라: {}대  |  촬영 가능: {}대".format(
-                len(cameras),
-                available_count
-            ),
-            fg=GREEN if available_count else GRAY
+            text="검색된 카메라: {}대".format(len(cameras)),
+            fg=GREEN
         )
 
         render_cameras(cameras)
@@ -285,10 +475,14 @@ def build(parent, app):
             app.notify(notice, GREEN)
 
     # ==========================================
-    # 서버에서 카메라 목록 및 역할 설정 조회
+    # 카메라 목록 새로고침
     # ==========================================
     def refresh_camera_list():
         nonlocal request_in_progress
+
+        # 촬영 중에는 새로고침 차단
+        if is_locked:
+            return
 
         if request_in_progress:
             return
@@ -296,7 +490,7 @@ def build(parent, app):
         request_in_progress = True
 
         status_label.configure(
-            text="서버에서 카메라 목록을 확인하고 있습니다...",
+            text="카메라 목록을 확인하고 있습니다...",
             fg=BLUE
         )
 
@@ -304,7 +498,6 @@ def build(parent, app):
             try:
                 cameras = get_cameras()
                 config = get_camera_config()
-
                 error_message = None
 
             except Exception as error:
@@ -332,68 +525,7 @@ def build(parent, app):
         ).start()
 
     # ==========================================
-    # 카메라 역할 변경
-    # ==========================================
-    def change_camera_role(camera_id, role):
-        if not camera_id:
-            return
-
-        if role not in ("side", "top"):
-            return
-
-        side_camera_id = camera_config.get("side_camera_id")
-        top_camera_id = camera_config.get("top_camera_id")
-
-        # 동일 카메라를 두 역할에 지정하지 못하도록 방지
-        if role == "side":
-            if top_camera_id == camera_id:
-                app.notify(
-                    "이미 탑 카메라로 지정되어 있습니다. "
-                    "먼저 탑 역할을 해제해 주세요.",
-                    RED
-                )
-                return
-
-            side_camera_id = camera_id
-
-        elif role == "top":
-            if side_camera_id == camera_id:
-                app.notify(
-                    "이미 사이드 카메라로 지정되어 있습니다. "
-                    "먼저 사이드 역할을 해제해 주세요.",
-                    RED
-                )
-                return
-
-            top_camera_id = camera_id
-
-        update_camera_config(
-            side_camera_id,
-            top_camera_id,
-            "카메라 역할을 변경했습니다."
-        )
-
-    # ==========================================
-    # 카메라 역할 해제
-    # ==========================================
-    def clear_camera_role(camera_id):
-        side_camera_id = camera_config.get("side_camera_id")
-        top_camera_id = camera_config.get("top_camera_id")
-
-        if side_camera_id == camera_id:
-            side_camera_id = None
-
-        if top_camera_id == camera_id:
-            top_camera_id = None
-
-        update_camera_config(
-            side_camera_id,
-            top_camera_id,
-            "카메라 역할을 해제했습니다."
-        )
-
-    # ==========================================
-    # 변경된 카메라 역할을 서버에 저장
+    # 변경된 카메라 역할 저장
     # ==========================================
     def update_camera_config(
         side_camera_id,
@@ -402,28 +534,28 @@ def build(parent, app):
     ):
         nonlocal request_in_progress
 
+        if is_locked:
+            return
+
         if request_in_progress:
             return
 
         request_in_progress = True
 
         status_label.configure(
-            text="카메라 역할 설정을 저장하고 있습니다...",
+            text="카메라 역할을 변경하고 있습니다...",
             fg=BLUE
         )
 
         def worker():
             try:
-                # 서버에 변경된 역할 설정 저장
                 save_camera_config(
                     side_camera_id,
                     top_camera_id
                 )
 
-                # 저장된 설정을 적용한 최신 카메라 목록 조회
                 cameras = get_cameras()
                 config = get_camera_config()
-
                 error_message = None
 
             except Exception as error:
@@ -451,7 +583,7 @@ def build(parent, app):
             daemon=True
         ).start()
 
-    # GUI가 만들어진 뒤 최초 카메라 목록 자동 조회
+    # 최초 카메라 목록 조회
     app.root.after(100, refresh_camera_list)
 
     return panel

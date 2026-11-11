@@ -34,7 +34,7 @@ FTP_PASSWORD = SECRET_FTP_PASSWORD
 FTP_BASE_DIR = "/test/camera"
 
 # 기본 저장 방식
-DEFAULT_STORAGE_MODE = "both"
+DEFAULT_STORAGE_MODE = "ftp"
 
 # 기본 촬영 시작 시간
 DEFAULT_START_HOUR = "09"

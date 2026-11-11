@@ -1,15 +1,30 @@
+
 import threading
 import tkinter as tk
-from config import APP_TITLE, WINDOW_GEOMETRY, WINDOW_MIN_SIZE, BG, GREEN, RED
+
+from config import (
+    APP_TITLE,
+    WINDOW_GEOMETRY,
+    WINDOW_MIN_SIZE,
+    BG,
+    GREEN,
+    RED,
+    FTP_HOST,
+    FTP_PORT,
+    FTP_USER,
+    FTP_PASSWORD
+)
 from state import AppState
 from ui.common import configure_style
 from ui.layout import build_header, build_main
-from ui import system_status, server_connection, ftp_settings, save_path
+from ui import system_status, save_path
 from ui import capture_settings, storage_mode, capture_control, camera_settings
 from ui import camera_preview
 from ui import recent_photos, notifications
 from services.websocket_client import WebSocketClient
 from services.api_client import get_server_status, stop_capture
+from services.ftp_client import test_ftp_connection
+
 
 # ==========================================
 # GUI 애플리케이션 메인 클래스
@@ -18,8 +33,10 @@ class CameraManagerApp:
     def __init__(self, root):
         self.root = root
         self.state = AppState(root)
+
         # 입력창 숫자 전용 유효성 검증 커맨드 등록(빈 문자열 또는 숫자 허용)
         self.vcmd = (root.register(self.validate_number), "%P")
+
         # 초기 알림 함수 플레이스홀더
         self.notify = lambda message, color=None: None
 
@@ -39,13 +56,11 @@ class CameraManagerApp:
         build_header(root)
         _, left, center, right = build_main(root)
 
-        # 좌측 UI 구성(시스템 상태, 서버 연결, FTP 설정, 저장 경로)
+        # 좌측 UI 구성(시스템 상태, 카메라 설정)
         system_status.build(left, self)
-        server_connection.build(left, self)
-        ftp_settings.build(left, self)
         camera_settings.build(left, self)
 
-        # 중앙 UI 구성(촬영 설정, 저장 방식, 촬영 제어)
+        # 중앙 UI 구성(저장 경로, 촬영 설정, 저장 방식, 촬영 제어)
         storage_mode.build(center, self)
         save_path.build(center, self)
         camera_preview.build(center, self)
@@ -64,6 +79,109 @@ class CameraManagerApp:
         )
         self.websocket_client.start()
 
+        # GUI 최초 실행 시 서버 및 FTP 연결 상태 확인
+        self._check_initial_server_connection()
+        self._check_initial_ftp_connection()
+
+    # ==========================================
+    # GUI 최초 실행 시 서버 연결 상태 확인
+    # ==========================================
+    def _check_initial_server_connection(self):
+
+        # 백그라운드 스레드에서 서버 상태 조회
+        def request_status():
+            try:
+                data = get_server_status()
+                error_message = None
+
+            except Exception as error:
+                data = None
+                error_message = str(error)
+
+            # Tkinter UI 업데이트는 메인 스레드에서 처리
+            self.root.after(
+                0,
+                lambda: self._apply_initial_server_status(
+                    data,
+                    error_message
+                )
+            )
+
+        threading.Thread(
+            target=request_status,
+            name="InitialServerConnectionCheck",
+            daemon=True
+        ).start()
+
+    # ==========================================
+    # 최초 서버 연결 확인 결과 적용
+    # ==========================================
+    def _apply_initial_server_status(self, data, error_message):
+
+        # 서버 연결 실패
+        if error_message is not None:
+            self.state.server_status.set("연결 실패")
+            self.refresh_system_status()
+            return
+
+        # 서버 연결 성공
+        self.state.server_status.set("연결됨")
+
+        # 서버의 실제 촬영 상태 반영
+        if data.get("capture") == "running":
+            self.state.capture_status.set("촬영 중")
+        else:
+            self.state.capture_status.set("대기 중")
+
+        self.refresh_system_status()
+
+    # ==========================================
+    # GUI 최초 실행 시 FTP 연결 상태 확인
+    # ==========================================
+    def _check_initial_ftp_connection(self):
+
+        # FTP 연결 확인 중 상태 표시
+        self.state.ftp_status.set("연결 확인 중...")
+        self.refresh_system_status()
+
+        # 백그라운드 스레드에서 FTP 연결 확인
+        def request_ftp_connection():
+            success, message = test_ftp_connection(
+                host=FTP_HOST,
+                port=FTP_PORT,
+                user=FTP_USER,
+                password=FTP_PASSWORD,
+                remote_path=self.state.ftp_path.get().strip(),
+                timeout=5
+            )
+
+            # Tkinter UI 업데이트는 메인 스레드에서 처리
+            self.root.after(
+                0,
+                lambda: self._apply_initial_ftp_status(
+                    success,
+                    message
+                )
+            )
+
+        threading.Thread(
+            target=request_ftp_connection,
+            name="InitialFTPConnectionCheck",
+            daemon=True
+        ).start()
+
+    # ==========================================
+    # 최초 FTP 연결 확인 결과 적용
+    # ==========================================
+    def _apply_initial_ftp_status(self, success, message):
+
+        if success:
+            self.state.ftp_status.set("연결 성공")
+        else:
+            self.state.ftp_status.set("연결 실패")
+
+        self.refresh_system_status()
+
     # ==========================================
     # WebSocket 연결 상태 변경 시 호출되는 콜백 함수
     # ==========================================
@@ -80,15 +198,21 @@ class CameraManagerApp:
         # 연결 상태에 따른 알림 메시지 처리
         if status == "연결됨":
             self.notify("WebSocket 서버에 연결되었습니다.", GREEN)
+
         elif status == "연결 끊김":
             self.notify("WebSocket 연결이 끊겼습니다. 재연결을 시도합니다.", RED)
+
         elif status == "연결 실패":
-            self.notify("WebSocket 연결에 실패했습니다. 서버와 네트워크를 확인해 주세요.", RED)
+            self.notify(
+                "WebSocket 연결에 실패했습니다. 서버와 네트워크를 확인해 주세요.",
+                RED
+            )
 
     # ==========================================
     # WebSocket을 통해 이벤트 수신 시 호출되는 콜백 함수
     # ==========================================
     def _on_websocket_event(self, data):
+
         # 수신된 데이터가 딕셔너리 형태가 아닌 경우 무시
         if not isinstance(data, dict):
             return
@@ -97,6 +221,7 @@ class CameraManagerApp:
 
         # 사진 촬영 완료 이벤트 처리
         if event_type == "photo_saved":
+
             # 서버 이벤트 데이터에서 사진 파일명과 촬영 뷰 추출
             filename = data.get("filename", "")
             view = data.get("view", "")
@@ -111,9 +236,8 @@ class CameraManagerApp:
             # 썸네일 데이터가 누락된 경우 처리 중단
             if not preview_data:
                 print("사진 썸네일 데이터가 없습니다:", filename)
-
                 return
-            
+
             # Tkinter GUI 메인 스레드에서 썸네일 UI 갱신
             self.root.after(
                 0,
@@ -126,6 +250,7 @@ class CameraManagerApp:
     # 애플리케이션 종료 처리 메서드
     # ==========================================
     def close(self):
+
         # 종료 처리가 이미 진행 중이면 중복 실행 방지
         if getattr(self, "_closing", False):
             return
@@ -146,9 +271,14 @@ class CameraManagerApp:
                 # 서버에서 실제 촬영 중인 경우에만 중지 요청
                 if server_status.get("capture") == "running":
                     stop_capture()
+
             except Exception as error:
                 # 서버 연결 실패 등으로 중지 요청을 완료하지 못한 경우 기록
-                print("GUI 종료 중 촬영 상태 확인 또는 중지 요청 실패: {}".format(error))
+                print(
+                    "GUI 종료 중 촬영 상태 확인 또는 중지 요청 실패: {}".format(
+                        error
+                    )
+                )
 
         # 백그라운드 스레드에서 서버 촬영 상태 확인 및 중지 처리
         # GUI 창이 닫혀도 중지 요청이 완료될 수 있도록 daemon=False 사용
@@ -170,12 +300,13 @@ class CameraManagerApp:
     @staticmethod
     def validate_number(value):
         return value.isdigit() or value == ""
-    
+
     # ==========================================
     # 시스템 상태 UI 갱신 메서드
     # ==========================================
     def refresh_system_status(self):
         system_status.refresh(self)
+
 
 # ==========================================
 # 애플리케이션 main 함수
@@ -189,8 +320,10 @@ def main():
 
     # 애플리케이션 인스턴스 생성 및 이벤트 루프 실행
     app = CameraManagerApp(root)
+
     root.protocol("WM_DELETE_WINDOW", app.close)
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()

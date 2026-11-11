@@ -137,7 +137,7 @@ def start_capture(payload):
     status_code, data = _request_json("/start", method="POST", payload=payload)
 
     if status_code < 200 or status_code >= 300 or not data.get("success", False):
-        raise RuntimeError("촬영 시작 요청에 실패했습니다.")
+        raise RuntimeError(data.get("message", "촬영 시작 요청에 실패했습니다."))
 
     return data
 

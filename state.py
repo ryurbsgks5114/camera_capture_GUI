@@ -1,3 +1,4 @@
+
 import json
 import tkinter as tk
 from config import (
@@ -10,8 +11,10 @@ from config import (
 )
 from pathlib import Path
 
+
 # 저장 경로 설정 파일
 PATH_SETTINGS_FILE = Path.home() / ".camera_manager_paths.json"
+
 
 # ==========================================
 # 저장된 로컬 및 FTP 경로 불러오기
@@ -47,9 +50,11 @@ def load_path_settings():
             default_paths["ftp_path"] = ftp_path
 
         return default_paths
+
     except (OSError, json.JSONDecodeError):
         # 파일이 없거나 내용이 잘못된 경우 기본 경로 사용
         return default_paths
+
 
 # ==========================================
 # 애플리케이션의 전체 상태를 관리하는 클래스
@@ -78,12 +83,6 @@ class AppState:
         self.local_path = tk.StringVar(value=path_settings["local_path"])
         self.ftp_path = tk.StringVar(value=path_settings["ftp_path"])
 
-        # FTP 설정 관련 변수
-        self.ftp_host = tk.StringVar(value="")
-        self.ftp_port = tk.StringVar(value="")
-        self.ftp_user = tk.StringVar(value="")
-        self.ftp_password = tk.StringVar(value="")
-
         # 저장 방식 관련 변수
         self.storage_mode = tk.StringVar(value=DEFAULT_STORAGE_MODE)
 
@@ -95,7 +94,9 @@ class AppState:
                 int(DEFAULT_START_SECOND)
             )
         )
-        self.interval_display = tk.StringVar(value="{} 분".format(DEFAULT_INTERVAL_MINUTES))
+        self.interval_display = tk.StringVar(
+            value="{} 분".format(DEFAULT_INTERVAL_MINUTES)
+        )
 
     # ==========================================
     # 저장 경로 설정을 JSON 파일에 저장하는 함수
@@ -114,7 +115,8 @@ class AppState:
                     ensure_ascii=False,
                     indent=4
                 )
-                
+
             return True
+
         except OSError:
             return False
