@@ -11,6 +11,7 @@ def get_server_status():
     Raises:
         RuntimeError: 서버 상태 조회에 실패한 경우
     """
+    
     status_code, data = request_json("/status", method="GET")
 
     if status_code != 200:

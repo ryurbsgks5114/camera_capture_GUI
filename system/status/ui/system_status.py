@@ -1,27 +1,24 @@
 
 import tkinter as tk
 
-from config import WHITE, TEXT, GREEN, GRAY, RED
+from config import WHITE, TEXT
+
 from common.ui.common import create_panel
 
-
-# ==========================================
-# 상태에 따라 색상 코드 반환
-# ==========================================
-def get_status_color(status):
-    if status in ("연결 성공", "연결됨", "촬영 중"):
-        return GREEN
-
-    if status == "연결 실패":
-        return RED
-
-    return GRAY
+from system.status.service.system_status_display import build_system_status_display_items
 
 
-# ==========================================
-# 시스템 상태 UI 생성
-# ==========================================
 def build(parent, app):
+    """시스템 상태 UI를 생성합니다.
+
+    Args:
+        parent (tk.Widget): 시스템 상태 패널을 배치할 부모 위젯
+        app (CameraManagerApp): 애플리케이션 인스턴스
+
+    Returns:
+        tk.Frame: 생성된 시스템 상태 패널
+    """
+
     panel = create_panel(parent, "시스템 상태")
 
     # 시스템 상태 패널의 세로 여백 축소
@@ -51,23 +48,22 @@ def build(parent, app):
     return panel
 
 
-# ==========================================
-# 시스템 상태 갱신
-# ==========================================
 def refresh(app):
+    """시스템 상태 UI를 갱신합니다.
+
+    Args:
+        app (CameraManagerApp): 애플리케이션 인스턴스
+    """
+
     # 기존 상태 위젯 초기화
     for widget in app.system_body.winfo_children():
         widget.destroy()
 
-    statuses = [
-        ("서버 상태", app.state.server_status.get()),
-        ("WS 상태", app.state.websocket_status.get()),
-        ("촬영 상태", app.state.capture_status.get()),
-        ("FTP 상태", app.state.ftp_status.get())
-    ]
+    # 상태 표시 데이터 가져오기
+    display_items = build_system_status_display_items(app.state)
 
     # 2열 배치
-    for index, (label, value) in enumerate(statuses):
+    for index, (label, value, color) in enumerate(display_items):
         row = index // 2
         column = index % 2
 
@@ -93,9 +89,6 @@ def refresh(app):
             fg=TEXT,
             font=("Malgun Gothic", 9)
         ).pack(side="left")
-
-        # 상태에 따른 색상
-        color = get_status_color(value)
 
         # 상태 표시 원
         canvas = tk.Canvas(

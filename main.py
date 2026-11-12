@@ -2,6 +2,9 @@
 import threading
 import tkinter as tk
 
+from common.enums.system_status import (CaptureStatus, ConnectionStatus)
+from common.state.app_state import AppState
+from common.websocket.websocket_client import WebSocketClient
 from config import (
     APP_TITLE,
     WINDOW_GEOMETRY,
@@ -14,8 +17,6 @@ from config import (
     FTP_USER,
     FTP_PASSWORD
 )
-from common.state.app_state import AppState
-from common.websocket.websocket_client import WebSocketClient
 
 from camera.preview.ui import camera_preview
 from camera.setting.ui import camera_settings
@@ -130,18 +131,18 @@ class CameraManagerApp:
 
         # 서버 연결 실패
         if error_message is not None:
-            self.state.server_status.set("연결 실패")
+            self.state.server_status.set(ConnectionStatus.FAILED.value)
             self.refresh_system_status()
             return
 
         # 서버 연결 성공
-        self.state.server_status.set("연결됨")
+        self.state.server_status.set(ConnectionStatus.CONNECTED.value)
 
         # 서버의 실제 촬영 상태 반영
         if data.get("capture") == "running":
-            self.state.capture_status.set("촬영 중")
+            self.state.capture_status.set(CaptureStatus.CAPTURING.value)
         else:
-            self.state.capture_status.set("대기 중")
+            self.state.capture_status.set(CaptureStatus.WAITING.value)
 
         self.refresh_system_status()
 
@@ -151,7 +152,7 @@ class CameraManagerApp:
     def _check_initial_ftp_connection(self):
 
         # FTP 연결 확인 중 상태 표시
-        self.state.ftp_status.set("연결 확인 중...")
+        self.state.ftp_status.set(ConnectionStatus.CONNECTING.value)
         self.refresh_system_status()
 
         # 백그라운드 스레드에서 FTP 연결 확인
@@ -186,9 +187,9 @@ class CameraManagerApp:
     def _apply_initial_ftp_status(self, success, message):
 
         if success:
-            self.state.ftp_status.set("연결 성공")
+            self.state.ftp_status.set(ConnectionStatus.CONNECTED.value)
         else:
-            self.state.ftp_status.set("연결 실패")
+            self.state.ftp_status.set(ConnectionStatus.FAILED.value)
 
         self.refresh_system_status()
 
@@ -206,13 +207,13 @@ class CameraManagerApp:
             return
 
         # 연결 상태에 따른 알림 메시지 처리
-        if status == "연결됨":
+        if status == ConnectionStatus.CONNECTED.value:
             self.notify("WebSocket 서버에 연결되었습니다.", GREEN)
 
-        elif status == "연결 끊김":
+        elif status == ConnectionStatus.DISCONNECTED.value:
             self.notify("WebSocket 연결이 끊겼습니다. 재연결을 시도합니다.", RED)
 
-        elif status == "연결 실패":
+        elif status == ConnectionStatus.FAILED.value:
             self.notify(
                 "WebSocket 연결에 실패했습니다. 서버와 네트워크를 확인해 주세요.",
                 RED

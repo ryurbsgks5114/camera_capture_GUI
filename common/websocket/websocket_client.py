@@ -1,5 +1,7 @@
 import threading
 import socketio
+
+from common.enums.system_status import ConnectionStatus
 from config import SERVER_HOST, SERVER_PORT, WEBSOCKET_RECONNECT_DELAY
 
 # ==========================================
@@ -29,7 +31,7 @@ class WebSocketClient:
         @self.client.event
         def connect():
             self._failure_reported = False
-            self._dispatch(self.on_status, "연결됨")
+            self._dispatch(self.on_status, ConnectionStatus.CONNECTED.value)
 
         # ==========================================
         # 서버와 연결이 끊겼을 때 호출되는 이벤트 핸들러
@@ -37,7 +39,7 @@ class WebSocketClient:
         @self.client.event
         def disconnect():
             if not self._stop_event.is_set():
-                self._dispatch_status("연결 끊김")
+                self._dispatch_status(ConnectionStatus.DISCONNECTED.value)
 
         # ==========================================
         # 서버에서 실제 사진 촬영 완료 이벤트를 수신하는 핸들러
@@ -111,7 +113,7 @@ class WebSocketClient:
 
                 if not self._failure_reported:
                     self._failure_reported = True
-                    self._dispatch_status("연결 실패")
+                    self._dispatch_status(ConnectionStatus.FAILED.value)
                 
                 # 설정된 재연결 지연 시간만큼 대기 후 재시도
                 self._stop_event.wait(WEBSOCKET_RECONNECT_DELAY)
