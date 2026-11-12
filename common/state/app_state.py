@@ -21,7 +21,6 @@ class AppState:
         root (tk.Tk): 애플리케이션의 최상위 Tkinter 객체
         path_settings (dict): 로컬 및 FTP 저장 경로 설정
     """
-
     def __init__(self, root, path_settings):
         self.root = root
 
@@ -43,4 +42,3 @@ class AppState:
 
         # 저장 방식 관련 변수
         self.storage_mode = tk.StringVar(value=DEFAULT_STORAGE_MODE)
-        

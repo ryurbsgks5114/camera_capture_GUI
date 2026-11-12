@@ -18,7 +18,6 @@ def build(parent, app):
     Returns:
         tk.Frame: 생성된 시스템 상태 패널
     """
-
     panel = create_panel(parent, "시스템 상태")
 
     # 시스템 상태 패널의 세로 여백 축소
@@ -54,7 +53,6 @@ def refresh(app):
     Args:
         app (CameraManagerApp): 애플리케이션 인스턴스
     """
-
     # 기존 상태 위젯 초기화
     for widget in app.system_body.winfo_children():
         widget.destroy()

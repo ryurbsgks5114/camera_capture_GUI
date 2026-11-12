@@ -11,7 +11,6 @@ def build_system_status_display_items(app_state):
     Returns:
         list: 상태 항목의 이름, 상태값, 표시 색상 목록
     """
-
     statuses = [
         ("서버 상태", app_state.server_status.get()),
         ("WS 상태", app_state.websocket_status.get()),
@@ -34,7 +33,6 @@ def get_status_color(status):
     Returns:
         str: 상태에 해당하는 색상 코드
     """
-    
     if status in (ConnectionStatus.CONNECTED.value, CaptureStatus.CAPTURING.value):
         return GREEN
 
