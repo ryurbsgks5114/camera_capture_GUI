@@ -3,7 +3,9 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 from config import WHITE, RED, TEXT, SUBTEXT, BORDER, BLUE
+
 from storage.path.service.ftp_client import list_ftp_directories
+from storage.path.service.path_settings_storage import save_path_settings
     
 # ==========================================    
 # FTP 서버의 디렉토리를 탐색하고 선택할 수 있는 팝업 창을 생성하는 함수
@@ -188,7 +190,7 @@ def open_ftp_browser(app, host, port, user, password):
         # 선택 시점에도 해당 경로의 접속 및 조회가 성공한 경로만 저장합니다.
         app.state.ftp_path.set(selected_path)
 
-        if app.state.save_path_settings():
+        if save_path_settings(app.state.local_path.get(), app.state.ftp_path.get()):
             app.notify("FTP 저장 경로가 변경되었습니다.")
         else:
             app.notify("경로는 변경되었지만 설정 파일 저장에 실패했습니다.", RED)

@@ -42,7 +42,7 @@ def build(parent, app):
     # ==========================================
     # 촬영 상태별 UI 생성 함수
     # ==========================================
-    def create_capture_state(title, status_color, card_bg, button_text, button_bg, show_details):
+    def create_capture_state(title, status_color, card_bg, button_text, button_bg):
         card = tk.Frame(
             body,
             bg=card_bg,
@@ -72,23 +72,6 @@ def build(parent, app):
             anchor="center"
         ).pack(side="left")
 
-        if show_details:
-            tk.Label(
-                status_frame,
-                textvariable=app.state.start_time_display,
-                bg=card_bg,
-                fg=TEXT,
-                font=("Malgun Gothic", 8)
-            ).pack(side="left", padx=(12, 0))
-
-            tk.Label(
-                status_frame,
-                textvariable=app.state.interval_display,
-                bg=card_bg,
-                fg=TEXT,
-                font=("Malgun Gothic", 8)
-            ).pack(side="left", padx=(8, 0))
-
         button = tk.Button(
             card,
             text=button_text,
@@ -113,8 +96,7 @@ def build(parent, app):
         GRAY,
         GRAY_LIGHT,
         "▶ 촬영 시작",
-        BLUE,
-        False
+        BLUE
     )
     idle_card.pack(fill="x", expand=True)
 
@@ -124,8 +106,7 @@ def build(parent, app):
         GREEN,
         "#EDF9F2",
         "■ 촬영 중지",
-        RED,
-        False
+        RED
     )
     running_card.pack_forget()
 

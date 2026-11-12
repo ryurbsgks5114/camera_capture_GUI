@@ -4,6 +4,8 @@ from config import (WHITE, RED, FTP_HOST, FTP_PORT, FTP_USER, FTP_PASSWORD)
 from common.ui.common import create_panel, create_field
 from storage.path.ui.ftp_browser import open_ftp_browser
 
+from storage.path.service.path_settings_storage import save_path_settings
+
 
 # ==========================================
 # 저장 경로 설정 UI 및 기능 함수
@@ -19,7 +21,7 @@ def build(parent, app):
         if selected:
             app.state.local_path.set(selected)
 
-            if app.state.save_path_settings():
+            if save_path_settings(app.state.local_path.get(), app.state.ftp_path.get()):
                 app.notify("로컬 저장 경로가 변경되었습니다.")
             else:
                 app.notify(

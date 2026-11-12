@@ -159,27 +159,6 @@ def build(parent, app):
     ).pack(side="left")
 
     # ==========================================
-    # 입력값 변경 시 기존 표시 변수 갱신
-    # ==========================================
-    def update(*args):
-        app.state.start_time_display.set(
-            "{}:{}:{}".format(
-                app.state.hour_var.get(),
-                app.state.minute_var.get(),
-                app.state.second_var.get()
-            )
-        )
-
-        app.state.interval_display.set(
-            app.state.interval_var.get() + " 분"
-        )
-
-    app.state.hour_var.trace_add("write", update)
-    app.state.minute_var.trace_add("write", update)
-    app.state.second_var.trace_add("write", update)
-    app.state.interval_var.trace_add("write", update)
-
-    # ==========================================
     # 촬영 중 설정 입력 잠금 및 해제
     # ==========================================
     def set_capture_settings_locked(locked):

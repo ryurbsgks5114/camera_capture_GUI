@@ -14,7 +14,8 @@ from config import (
     FTP_USER,
     FTP_PASSWORD
 )
-from state import AppState
+from common.state.app_state import AppState
+from common.websocket.websocket_client import WebSocketClient
 
 from camera.preview.ui import camera_preview
 from camera.setting.ui import camera_settings
@@ -29,8 +30,7 @@ from storage.path.ui import save_path
 from system.status.ui import system_status
 
 from storage.path.service.ftp_client import test_ftp_connection
-
-from common.websocket.websocket_client import WebSocketClient
+from storage.path.service.path_settings_storage import load_path_settings
 
 from capture.control.api.capture_api import stop_capture
 from system.status.api.system_api import get_server_status
@@ -42,7 +42,7 @@ from system.status.api.system_api import get_server_status
 class CameraManagerApp:
     def __init__(self, root):
         self.root = root
-        self.state = AppState(root)
+        self.state = AppState(root, load_path_settings())
 
         # 입력창 숫자 전용 유효성 검증 커맨드 등록(빈 문자열 또는 숫자 허용)
         self.vcmd = (root.register(self.validate_number), "%P")
