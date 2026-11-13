@@ -64,7 +64,7 @@ class CameraManagerApp:
 
         # 좌측 UI 구성(시스템 상태, 카메라 설정)
         system_status.build(left, self)
-        camera_settings.build(left, self)
+        _, camera_settings_lock = camera_settings.build(left, self)
 
         # 중앙 UI 구성(저장 경로, 촬영 설정, 저장 방식, 촬영 제어)
         _, storage_mode_lock = storage_mode.build(center, self)
@@ -78,6 +78,7 @@ class CameraManagerApp:
         notifications.build(right, self)
 
         # 저장 방식 UI 잠금 함수 등록
+        self.capture_ui_lock_manager.register("camera_settings", camera_settings_lock)
         self.capture_ui_lock_manager.register("storage_mode", storage_mode_lock)
         self.capture_ui_lock_manager.register("save_path", save_path_lock)
 
