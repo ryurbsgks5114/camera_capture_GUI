@@ -11,19 +11,10 @@ def start_preview():
     Raises:
         RuntimeError: 미리보기 시작에 실패한 경우
     """
-    status_code, data = request_json(
-        "/preview/start",
-        method="POST"
-    )
+    status_code, data = request_json("/preview/start", method="POST")
 
-    if (
-        status_code < 200
-        or status_code >= 300
-        or not data.get("success", False)
-    ):
-        raise RuntimeError(
-            data.get("message", "카메라 미리보기 시작에 실패했습니다.")
-        )
+    if (status_code < 200 or status_code >= 300 or not data.get("success", False)):
+        raise RuntimeError(data.get("message", "카메라 미리보기 시작에 실패했습니다."))
 
     return data
 
@@ -37,19 +28,10 @@ def stop_preview():
     Raises:
         RuntimeError: 미리보기 중지에 실패한 경우
     """
-    status_code, data = request_json(
-        "/preview/stop",
-        method="POST"
-    )
+    status_code, data = request_json("/preview/stop", method="POST")
 
-    if (
-        status_code < 200
-        or status_code >= 300
-        or not data.get("success", False)
-    ):
-        raise RuntimeError(
-            data.get("message", "카메라 미리보기 중지에 실패했습니다.")
-        )
+    if (status_code < 200 or status_code >= 300 or not data.get("success", False)):
+        raise RuntimeError(data.get("message", "카메라 미리보기 중지에 실패했습니다."))
 
     return data
 
@@ -70,7 +52,4 @@ def get_preview_frame(view):
     if view not in ("side", "top"):
         raise ValueError("잘못된 카메라 구분입니다.")
 
-    return request_bytes(
-        "/preview/frame/{}".format(view),
-        error_message="미리보기 프레임 조회에 실패했습니다."
-    )
+    return request_bytes("/preview/frame/{}".format(view), error_message="미리보기 프레임 조회에 실패했습니다.")
