@@ -2,6 +2,7 @@
 import json
 
 from pathlib import Path
+
 from config import FTP_BASE_DIR
 
 
@@ -16,7 +17,6 @@ def load_path_settings():
     Returns:
         dict: 로컬 및 FTP 저장 경로
     """
-
     default_paths = {
         "local_path": str(Path.home() / "Downloads"),
         "ftp_path": FTP_BASE_DIR
@@ -56,7 +56,6 @@ def save_path_settings(local_path, ftp_path):
     Returns:
         bool: 저장 성공 여부
     """
-
     settings = {
         "local_path": local_path,
         "ftp_path": ftp_path

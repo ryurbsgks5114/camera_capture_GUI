@@ -68,7 +68,7 @@ class CameraManagerApp:
 
         # 중앙 UI 구성(저장 경로, 촬영 설정, 저장 방식, 촬영 제어)
         _, storage_mode_lock = storage_mode.build(center, self)
-        save_path.build(center, self)
+        _, save_path_lock = save_path.build(center, self)
         camera_preview.build(center, self)
         capture_settings.build(center, self)
         capture_control.build(center, self)
@@ -79,6 +79,7 @@ class CameraManagerApp:
 
         # 저장 방식 UI 잠금 함수 등록
         self.capture_ui_lock_manager.register("storage_mode", storage_mode_lock)
+        self.capture_ui_lock_manager.register("save_path", save_path_lock)
 
         # WebSocket 실시간 알림 클라이언트 초기화 및 시작
         self.websocket_client = WebSocketClient(
