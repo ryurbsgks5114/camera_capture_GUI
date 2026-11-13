@@ -122,7 +122,7 @@ def build(parent, app):
         nonlocal capture_state
         capture_state = "running"
 
-        app.set_capture_settings_locked(True)
+        app.capture_ui_lock_manager.set_locked(True)
 
         idle_card.pack_forget()
         running_card.pack(fill="x", expand=True)
@@ -148,7 +148,7 @@ def build(parent, app):
         nonlocal capture_state
         capture_state = "idle"
 
-        app.set_capture_settings_locked(False)
+        app.capture_ui_lock_manager.set_locked(False)
 
         running_card.pack_forget()
         idle_card.pack(fill="x", expand=True)

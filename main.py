@@ -30,6 +30,7 @@ from storage.mode.ui import storage_mode
 from storage.path.ui import save_path
 from system.status.ui import system_status
 
+from common.service.capture_ui_lock_manager import CaptureUiLockManager
 from storage.path.service.ftp_client import test_ftp_connection
 from storage.path.service.path_settings_storage import load_path_settings
 
@@ -51,16 +52,10 @@ class CameraManagerApp:
         # 초기 알림 함수 플레이스홀더
         self.notify = lambda message, color=None: None
 
-        # 촬영 중일 때 입력 제어(잠금/해제) 기능을 수행할 설정 목록
+        # UI 잠금 관리자
+        self.capture_ui_lock_manager = CaptureUiLockManager()
+        # 기존 UI들의 잠금 방식 전환이 완료될 때까지 임시 유지
         self.capture_settings_lockers = []
-
-        # 촬영 상태에 따라 등록된 설정 화면들을 일괄적으로 잠그거나 해제하는 람다 함수
-        self.set_capture_settings_locked = (
-            lambda locked: [
-                locker(locked)
-                for locker in self.capture_settings_lockers
-            ]
-        )
 
         # UI 스타일 및 레이아웃 빌드 영역
         configure_style()
@@ -72,7 +67,7 @@ class CameraManagerApp:
         camera_settings.build(left, self)
 
         # 중앙 UI 구성(저장 경로, 촬영 설정, 저장 방식, 촬영 제어)
-        storage_mode.build(center, self)
+        _, storage_mode_lock = storage_mode.build(center, self)
         save_path.build(center, self)
         camera_preview.build(center, self)
         capture_settings.build(center, self)
@@ -81,6 +76,9 @@ class CameraManagerApp:
         # 우측 UI 구성(최근 촬영 사진, 알림)
         recent_photos.build(right, self)
         notifications.build(right, self)
+
+        # 저장 방식 UI 잠금 함수 등록
+        self.capture_ui_lock_manager.register("storage_mode", storage_mode_lock)
 
         # WebSocket 실시간 알림 클라이언트 초기화 및 시작
         self.websocket_client = WebSocketClient(

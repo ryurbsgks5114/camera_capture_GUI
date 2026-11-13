@@ -1,61 +1,49 @@
 
 import tkinter as tk
 
-from config import WHITE, TEXT
 from common.ui.common import create_panel
+from config import TEXT, WHITE
 
 
-# ==========================================
-# 저장 방식 설정 UI 및 기능
-# ==========================================
 def build(parent, app):
-    mode_text = {
+    """저장 방식 설정 UI를 생성합니다.
+
+    Args:
+        parent (tk.Widget): 저장 방식 패널을 배치할 부모 위젯
+        app (CameraManagerApp): 애플리케이션 인스턴스
+
+    Returns:
+        tuple: 생성된 패널과 UI 잠금 함수
+    """
+    options = {
         "ftp": "FTP 저장",
         "local": "로컬 저장",
         "both": "로컬 + FTP 저장"
     }
 
-    # 저장 방식 변경 알림
     def on_storage_mode_change(mode):
-        app.notify(
-            "저장 방식이 '{}'으로 설정되었습니다.".format(
-                mode_text.get(mode, "")
-            )
-        )
+        """저장 방식 변경을 알림으로 표시합니다.
 
-    # 상위 패널 생성
+        Args:
+            mode (str): 선택된 저장 방식
+        """
+        app.notify("저장 방식이 '{}'으로 설정되었습니다.".format(options.get(mode, "")))
+
     panel = create_panel(parent, "저장 방식")
     panel.pack(fill="x", pady=5)
 
-    # 저장 방식 선택 영역
-    options_frame = tk.Frame(
-        panel,
-        bg=WHITE
-    )
-    options_frame.pack(
-        fill="x",
-        padx=18,
-        pady=(5, 7)
-    )
-
-    # 선택 가능한 저장 방식
-    options = [
-        ("ftp", "FTP 저장"),
-        ("local", "로컬 저장"),
-        ("both", "로컬 + FTP 저장")
-    ]
+    options_frame = tk.Frame(panel, bg=WHITE)
+    options_frame.pack(fill="x", padx=18, pady=(5, 7))
 
     storage_radio_buttons = []
 
-    # 라디오 버튼 생성
-    for value, label in options:
+    for value, label in options.items():
         radio_button = tk.Radiobutton(
             options_frame,
             text=label,
             variable=app.state.storage_mode,
             value=value,
-            command=lambda selected=value:
-                on_storage_mode_change(selected),
+            command=lambda selected=value: on_storage_mode_change(selected),
             bg=WHITE,
             fg=TEXT,
             activebackground=WHITE,
@@ -66,27 +54,18 @@ def build(parent, app):
             padx=2,
             pady=1
         )
-
-        radio_button.pack(
-            fill="x",
-            anchor="w",
-            pady=1
-        )
-
+        radio_button.pack(fill="x", anchor="w", pady=1)
         storage_radio_buttons.append(radio_button)
 
-    # ==========================================
-    # 촬영 중 저장 방식 선택 잠금 및 해제
-    # ==========================================
     def set_storage_mode_locked(locked):
+        """촬영 상태에 따라 저장 방식 선택을 잠그거나 해제합니다.
+
+        Args:
+            locked (bool): True이면 선택을 잠그고 False이면 해제합니다.
+        """
         new_state = "disabled" if locked else "normal"
 
         for radio_button in storage_radio_buttons:
             radio_button.configure(state=new_state)
 
-    # 촬영 제어의 일괄 잠금 관리 목록에 등록
-    app.capture_settings_lockers.append(
-        set_storage_mode_locked
-    )
-
-    return panel
+    return panel, set_storage_mode_locked
