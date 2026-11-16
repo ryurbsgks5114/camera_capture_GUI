@@ -3,19 +3,23 @@ import tkinter as tk
 from tkinter import ttk
 
 from config import WHITE, TEXT, BLUE
+
 from common.ui.common import create_panel
 
 
-# ==========================================
-# 촬영 설정 UI 및 기능
-# ==========================================
 def build(parent, app):
+    """촬영 설정 UI를 생성합니다.
+
+    Args:
+        parent (tk.Widget): 촬영 설정 UI를 배치할 부모 위젯
+        app (CameraManagerApp): 애플리케이션 인스턴스
+
+    Returns:
+        tuple: 촬영 설정 패널과 UI 잠금 함수
+    """
     panel = create_panel(parent, "촬영 설정")
     panel.pack(fill="x", pady=(0, 5))
 
-    # ==========================================
-    # 촬영 시작 시간 설정
-    # ==========================================
     time_row = tk.Frame(panel, bg=WHITE)
     time_row.pack(
         fill="x",
@@ -33,7 +37,6 @@ def build(parent, app):
         font=("Malgun Gothic", 9)
     ).pack(side="left")
 
-    # 시 입력
     hour_entry = ttk.Spinbox(
         time_row,
         from_=0,
@@ -56,7 +59,6 @@ def build(parent, app):
         font=("Malgun Gothic", 10, "bold")
     ).pack(side="left")
 
-    # 분 입력
     minute_entry = ttk.Spinbox(
         time_row,
         from_=0,
@@ -79,7 +81,6 @@ def build(parent, app):
         font=("Malgun Gothic", 10, "bold")
     ).pack(side="left")
 
-    # 초 입력
     second_entry = ttk.Spinbox(
         time_row,
         from_=0,
@@ -94,7 +95,6 @@ def build(parent, app):
     )
     second_entry.pack(side="left")
 
-    # 시간 형식 안내
     tk.Label(
         time_row,
         text=" HH:MM:SS",
@@ -103,7 +103,6 @@ def build(parent, app):
         font=("Malgun Gothic", 8)
     ).pack(side="left")
 
-    # 기존 안내 문구 유지
     tk.Label(
         panel,
         text="※ 현재 시간이 설정 시간을 이미 지났다면 즉시 촬영이 시작됩니다.",
@@ -117,9 +116,6 @@ def build(parent, app):
         pady=(1, 4)
     )
 
-    # ==========================================
-    # 촬영 간격 설정
-    # ==========================================
     interval_row = tk.Frame(panel, bg=WHITE)
     interval_row.pack(
         fill="x",
@@ -158,10 +154,12 @@ def build(parent, app):
         font=("Malgun Gothic", 9)
     ).pack(side="left")
 
-    # ==========================================
-    # 촬영 중 설정 입력 잠금 및 해제
-    # ==========================================
     def set_capture_settings_locked(locked):
+        """촬영 상태에 따라 촬영 설정 입력을 잠그거나 해제합니다.
+
+        Args:
+            locked (bool): True이면 입력을 잠그고 False이면 해제합니다.
+        """
         new_state = "disabled" if locked else "normal"
 
         hour_entry.configure(state=new_state)
@@ -169,8 +167,4 @@ def build(parent, app):
         second_entry.configure(state=new_state)
         interval_entry.configure(state=new_state)
 
-    app.capture_settings_lockers.append(
-        set_capture_settings_locked
-    )
-
-    return panel
+    return panel, set_capture_settings_locked

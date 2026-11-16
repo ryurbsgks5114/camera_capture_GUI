@@ -1,48 +1,45 @@
 
 import tkinter as tk
-import threading
 
-from config import (
-    WHITE,
-    BORDER,
-    TEXT,
-    GREEN,
-    GRAY,
-    GRAY_LIGHT,
-    RED,
-    BLUE,
-    FTP_HOST,
-    FTP_PORT,
-    FTP_USER,
-    FTP_PASSWORD
-)
-from capture.control.service.capture_start_validator import validate_capture_start_settings
-from capture.control.api.capture_api import (
-    start_capture as request_start_capture,
-    stop_capture as request_stop_capture,
-)
+from config import WHITE, BORDER, GREEN, GRAY, GRAY_LIGHT, RED, BLUE
+
 from common.ui.common import create_panel
 
+from capture.control.service.capture_control_service import CaptureControlService
 
-# ==========================================
-# 촬영 제어 UI 및 기능 함수
-# ==========================================
+
 def build(parent, app):
-    # 상위 패널 생성
+    """촬영 제어 UI를 생성하고 촬영 제어 Service를 연결합니다.
+
+    Args:
+        parent (tk.Widget): 촬영 제어 UI를 배치할 부모 위젯
+        app (CameraManagerApp): 애플리케이션 인스턴스
+
+    Returns:
+        tk.Frame: 생성된 촬영 제어 패널
+    """
     panel = create_panel(parent, "촬영 제어")
     panel.configure(height=120)
     panel.pack(fill="both", expand=False, pady=5)
     panel.pack_propagate(False)
 
-    # 버튼 및 내부 바디 생성
     body = tk.Frame(panel, bg=WHITE)
     body.pack(fill="both", expand=True, padx=18, pady=9)
     app.control_body = body
 
-    # ==========================================
-    # 촬영 상태별 UI 생성 함수
-    # ==========================================
     def create_capture_state(title, status_color, card_bg, button_text, button_bg):
+        """촬영 상태 카드와 버튼을 생성합니다.
+
+        Args:
+            title (str): 상태 표시 문구
+            status_color (str): 상태 표시 색상
+            card_bg (str): 카드 배경색
+            button_text (str): 버튼 표시 문구
+            button_bg (str): 버튼 배경색
+
+        Returns:
+            tuple: 상태 카드와 버튼 위젯
+        """
         card = tk.Frame(
             body,
             bg=card_bg,
@@ -90,7 +87,6 @@ def build(parent, app):
 
         return card, button
 
-    # 대기 중 상태 UI 생성
     idle_card, idle_button = create_capture_state(
         "대기 중",
         GRAY,
@@ -100,7 +96,6 @@ def build(parent, app):
     )
     idle_card.pack(fill="x", expand=True)
 
-    # 촬영 중 상태 UI 생성
     running_card, running_button = create_capture_state(
         "촬영 중",
         GREEN,
@@ -110,231 +105,86 @@ def build(parent, app):
     )
     running_card.pack_forget()
 
-    # ==========================================
-    # 내부 촬영 상태
-    # ==========================================
-    capture_state = "idle"
+    def update_capture_state(state):
+        """촬영 상태에 따라 화면과 입력 잠금 상태를 갱신합니다.
 
-    # ==========================================
-    # 상태 전환 함수(대기 중 -> 촬영 중)
-    # ==========================================
-    def show_running():
-        nonlocal capture_state
-        capture_state = "running"
+        Args:
+            state (str): 변경된 촬영 상태
+        """
+        if state == "starting":
+            idle_button.configure(
+                state=tk.DISABLED,
+                text="촬영 시작 대기 중..."
+            )
+        elif state == "running":
+            idle_card.pack_forget()
+            running_card.pack(fill="x", expand=True)
 
-        app.capture_ui_lock_manager.set_locked(True)
+            running_button.configure(
+                state=tk.NORMAL,
+                text="■ 촬영 중지"
+            )
 
-        idle_card.pack_forget()
-        running_card.pack(fill="x", expand=True)
+            app.capture_ui_lock_manager.set_locked(True)
+        elif state == "stopping":
+            running_button.configure(
+                state=tk.DISABLED,
+                text="중지 요청 중..."
+            )
+        elif state == "idle":
+            running_card.pack_forget()
+            idle_card.pack(fill="x", expand=True)
 
-        running_button.configure(
-            state=tk.NORMAL,
-            text="■ 촬영 중지"
-        )
-
-        # FTP 저장 모드에서 서버의 촬영 시작 응답이 성공했다면
-        # 서버 측 FTP 연결 및 저장 경로 확인도 통과한 상태
-        if app.state.storage_mode.get() in ("ftp", "both"):
-            app.state.ftp_status.set("연결 성공")
-
-        app.state.server_status.set("연결 성공")
-        app.state.capture_status.set("촬영 중")
-        app.refresh_system_status()
-
-    # ==========================================
-    # 상태 전환 함수(촬영 중 -> 대기 중)
-    # ==========================================
-    def show_idle():
-        nonlocal capture_state
-        capture_state = "idle"
-
-        app.capture_ui_lock_manager.set_locked(False)
-
-        running_card.pack_forget()
-        idle_card.pack(fill="x", expand=True)
-
-        idle_button.configure(
-            state=tk.NORMAL,
-            text="▶ 촬영 시작"
-        )
-
-        app.state.capture_status.set("대기 중")
-        app.refresh_system_status()
-
-    # ==========================================
-    # 촬영 설정값 검증 및 촬영 시작 요청 함수
-    # ==========================================
-    def start_capture():
-        nonlocal capture_state
-
-        if capture_state != "idle":
-            return
-
-        capture_state = "starting"
-        idle_button.configure(
-            state=tk.DISABLED,
-            text="촬영 시작 대기 중..."
-        )
-
-        # FTP 접속정보 검증은 하지 않고 저장 경로 선택 여부만 확인
-        valid, message = validate_capture_start_settings(
-            hour_text=app.state.hour_var.get(),
-            minute_text=app.state.minute_var.get(),
-            second_text=app.state.second_var.get(),
-            interval_text=app.state.interval_var.get(),
-            storage_mode=app.state.storage_mode.get(),
-            local_path=app.state.local_path.get(),
-            ftp_path=app.state.ftp_path.get()
-        )
-
-        if not valid:
-            capture_state = "idle"
             idle_button.configure(
                 state=tk.NORMAL,
                 text="▶ 촬영 시작"
             )
 
-            app.notify(message, RED)
-            return
+            app.capture_ui_lock_manager.set_locked(False)
 
-        # 서버에 전달할 촬영 설정 구성
-        payload = {
-            "start_time": "{}:{}:{}".format(
-                app.state.hour_var.get().strip(),
-                app.state.minute_var.get().strip(),
-                app.state.second_var.get().strip()
-            ),
-            "interval_minutes": int(app.state.interval_var.get().strip()),
-            "storage_mode": app.state.storage_mode.get()
-        }
+    def update_system_status(status_updates):
+        """촬영 처리 결과를 애플리케이션 상태에 반영합니다.
 
-        # local / both 모드에서는 로컬 저장 경로 전달
-        if payload["storage_mode"] in ("local", "both"):
-            payload["local_path"] = app.state.local_path.get().strip()
+        Args:
+            status_updates (dict): 변경할 시스템 상태값
+        """
+        if "server_status" in status_updates:
+            app.state.server_status.set(status_updates["server_status"])
 
-        # FTP / both 모드에서는 config.py의 FTP 접속정보 사용
-        if payload["storage_mode"] in ("ftp", "both"):
-            payload["ftp"] = {
-                "host": FTP_HOST,
-                "port": int(FTP_PORT),
-                "user": FTP_USER,
-                "password": FTP_PASSWORD,
-                "base_dir": app.state.ftp_path.get().strip()
-            }
+        if "capture_status" in status_updates:
+            app.state.capture_status.set(status_updates["capture_status"])
 
-        app.notify("서버에 촬영 시작 요청을 보내는 중입니다...", BLUE)
-
-        # 네트워크 요청 중 GUI가 멈추지 않도록 별도 스레드에서 요청
-        def send_start_request():
-            try:
-                response = request_start_capture(payload)
-            except Exception as error:
-                app.root.after(
-                    0,
-                    lambda error=str(error): handle_start_failure(error)
-                )
-                return
-
-            app.root.after(
-                0,
-                lambda response=response: handle_start_success(response)
-            )
-
-        threading.Thread(target=send_start_request, daemon=True).start()
-
-    # ==========================================
-    # API 요청 성공 콜백 함수
-    # ==========================================
-    def handle_start_success(response):
-        show_running()
-        app.notify(response.get("message", "촬영을 시작했습니다."), GREEN)
-
-    # ==========================================
-    # API 요청 실패 콜백 함수
-    # ==========================================
-    def handle_start_failure(message):
-        nonlocal capture_state
-        capture_state = "idle"
-
-        idle_button.configure(
-            state=tk.NORMAL,
-            text="▶ 촬영 시작"
-        )
-
-        server_unreachable = message.startswith("서버에 연결할 수 없습니다.")
-
-        if server_unreachable:
-            app.state.server_status.set("연결 실패")
-        else:
-            # 서버가 응답했다면 서버 연결은 성공한 상태
-            app.state.server_status.set("연결 성공")
-
-            # FTP 저장 모드에서 FTP 오류가 발생한 경우
-            # FTP 상태만 실패로 변경
-            if (
-                app.state.storage_mode.get() in ("ftp", "both")
-                and "FTP" in message.upper()
-            ):
-                app.state.ftp_status.set("연결 실패")
+        if "ftp_status" in status_updates:
+            app.state.ftp_status.set(status_updates["ftp_status"])
 
         app.refresh_system_status()
-        app.notify(message, RED)
 
-    # ==========================================
-    # 촬영 중지 요청 함수
-    # ==========================================
+    capture_service = CaptureControlService(
+        schedule_callback=app.root.after,
+        on_state_change=update_capture_state,
+        on_status_change=update_system_status,
+        on_notification=lambda message, color=None: app.notify(message, color)
+    )
+
+    def start_capture():
+        """현재 UI에 입력된 설정으로 촬영을 시작합니다."""
+        settings = {
+            "hour_text": app.state.hour_var.get(),
+            "minute_text": app.state.minute_var.get(),
+            "second_text": app.state.second_var.get(),
+            "interval_text": app.state.interval_var.get(),
+            "storage_mode": app.state.storage_mode.get(),
+            "local_path": app.state.local_path.get(),
+            "ftp_path": app.state.ftp_path.get()
+        }
+
+        capture_service.start_capture(settings)
+
     def stop_capture():
-        nonlocal capture_state
+        """촬영 중지 요청을 Service에 전달합니다."""
+        capture_service.stop_capture()
 
-        if capture_state != "running":
-            return
-
-        capture_state = "stopping"
-        running_button.configure(
-            state=tk.DISABLED,
-            text="중지 요청 중..."
-        )
-
-        app.notify("서버에 촬영 중지 요청을 보내는 중입니다...", BLUE)
-
-        def send_stop_request():
-            try:
-                response = request_stop_capture()
-            except Exception as error:
-                app.root.after(
-                    0,
-                    lambda error=str(error): handle_stop_failure(error)
-                )
-                return
-
-            app.root.after(
-                0,
-                lambda response=response: handle_stop_success(response)
-            )
-
-        threading.Thread(target=send_stop_request, daemon=True).start()
-
-    # ==========================================
-    # API 요청 성공 콜백 함수
-    # ==========================================
-    def handle_stop_success(response):
-        show_idle()
-        app.notify(response.get("message", "촬영을 중지했습니다."), GREEN)
-
-    # ==========================================
-    # API 요청 실패 콜백 함수
-    # ==========================================
-    def handle_stop_failure(message):
-        nonlocal capture_state
-        capture_state = "running"
-
-        running_button.configure(
-            state=tk.NORMAL,
-            text="■ 촬영 중지"
-        )
-
-        app.notify(message, RED)
-
-    # 버튼 이벤트 연결
     idle_button.configure(command=start_capture)
     running_button.configure(command=stop_capture)
+
+    return panel
