@@ -1,81 +1,103 @@
-import threading
 import socketio
+import threading
 
 from common.enums.system_status import ConnectionStatus
 from config import SERVER_HOST, SERVER_PORT, WEBSOCKET_RECONNECT_DELAY
 
-# ==========================================
-# GUI용 Socket.IO 클라이언트
-# UI 변경은 Tkinter 메인 스레드로 전달
-# ==========================================
+
 class WebSocketClient:
+    """GUI와 서버 간 Socket.IO 연결 및 이벤트 수신을 관리합니다.
+
+    서버 연결 상태와 촬영 완료 이벤트를 수신하며,
+    Tkinter UI 콜백은 root.after()를 통해 전달합니다.
+
+    Args:
+        root (tk.Tk): 애플리케이션 최상위 Tkinter 객체
+        on_status (callable): 연결 상태 변경 시 실행할 콜백
+        on_event (callable): 서버 이벤트 수신 시 실행할 콜백
+    """
     def __init__(self, root, on_status, on_event):
+        """WebSocket 클라이언트와 이벤트 핸들러를 초기화합니다."""
         self.root = root
         self.on_status = on_status
         self.on_event = on_event
+
         self._stop_event = threading.Event()
         self._thread = None
         self._failure_reported = False
         self._last_status = None
 
-        # Socket.IO 클라이언트 인스턴스 초기화(자동 재연결은 아래 _run() 함수에서 관리)
         self.client = socketio.Client(
             reconnection=False,
             logger=False,
             engineio_logger=False
         )
 
-        # ==========================================
-        # 서버와 연결 성공 시 호출되는 이벤트 핸들러
-        # ==========================================
         @self.client.event
         def connect():
+            """서버와 연결되었을 때 연결 상태를 전달합니다."""
             self._failure_reported = False
-            self._dispatch(self.on_status, ConnectionStatus.CONNECTED.value)
+            self._dispatch(
+                self.on_status,
+                ConnectionStatus.CONNECTED.value,
+            )
 
-        # ==========================================
-        # 서버와 연결이 끊겼을 때 호출되는 이벤트 핸들러
-        # ==========================================
         @self.client.event
         def disconnect():
+            """서버 연결이 끊겼을 때 연결 끊김 상태를 전달합니다."""
             if not self._stop_event.is_set():
                 self._dispatch_status(ConnectionStatus.DISCONNECTED.value)
 
-        # ==========================================
-        # 서버에서 실제 사진 촬영 완료 이벤트를 수신하는 핸들러
-        # ==========================================
         @self.client.on("photo_saved")
         def handle_photo_saved(data):
+            """서버에서 사진 저장 완료 이벤트를 수신합니다.
+
+            Args:
+                data (dict): 서버에서 전달한 사진 저장 이벤트 데이터
+            """
             self._dispatch_event(data)
 
-    # ==========================================
-    # Tkinter 메인 스레드 안전하게 콜백을 호출하기 위한 헬퍼 함수
-    # ==========================================
     def _dispatch(self, callback, value):
-        # 종료 요청 이후에는 새로운 UI 작업을 예약하지 않음
+        """Tkinter 메인 스레드에서 콜백을 실행하도록 예약합니다.
+
+        종료 요청 이후에는 새로운 UI 작업을 예약하지 않습니다.
+
+        Args:
+            callback (callable): 실행할 콜백 함수
+            value: 콜백에 전달할 데이터
+        """
         if self._stop_event.is_set():
             return
 
         try:
             self.root.after(0, lambda: callback(value))
         except Exception:
-            # 창이 이미 닫힌 경우 예약된 UI 작업은 무시한다.
             pass
 
     def _dispatch_status(self, status):
-        # 같은 상태는 main.py로 반복 전달하지 않는다.
+        """변경된 연결 상태를 UI 콜백으로 전달합니다.
+
+        동일한 상태가 반복 전달되는 것을 방지합니다.
+
+        Args:
+            status (str): 전달할 연결 상태
+        """
         if status == self._last_status:
             return
+
         self._last_status = status
         self._dispatch(self.on_status, status)
 
     def _dispatch_event(self, data):
+        """서버 이벤트 데이터를 UI 콜백으로 전달합니다.
+
+        Args:
+            data: 서버에서 수신한 이벤트 데이터
+        """
         self._dispatch(self.on_event, data)
 
-    # ==========================================
-    # WebSocket 클라이언트 백그라운드 스레드 시작 메서드
-    # ==========================================
     def start(self):
+        """WebSocket 연결 관리용 백그라운드 스레드를 시작합니다."""
         if self._thread and self._thread.is_alive():
             return
 
@@ -88,56 +110,44 @@ class WebSocketClient:
         )
         self._thread.start()
 
-    # ==========================================
-    # 백그라운드 스레드 메인 루프(서버 연결 유지 및 재연결 관리)
-    # ==========================================
     def _run(self):
+        """서버 연결을 유지하고 연결이 끊기면 재연결을 시도합니다."""
         url = "http://{}:{}".format(SERVER_HOST, SERVER_PORT)
 
         while not self._stop_event.is_set():
             try:
-                # 연결되어 있지 않은 경우에만 서버 연결 시도
                 if not self.client.connected:
                     self.client.connect(url, wait_timeout=5)
 
-                # 연결 시도 도중 종료 요청이 들어왔는지 확인
                 if self._stop_event.is_set():
                     break
 
-                # 연결 유지 상태 대기
                 self.client.wait()
-            except Exception as error:
-                # 종료 이벤트가 설정된 경우 루프 탈출
+            except Exception:
                 if self._stop_event.is_set():
                     break
 
                 if not self._failure_reported:
                     self._failure_reported = True
                     self._dispatch_status(ConnectionStatus.FAILED.value)
-                
-                # 설정된 재연결 지연 시간만큼 대기 후 재시도
+
                 self._stop_event.wait(WEBSOCKET_RECONNECT_DELAY)
 
-    # ==========================================
-    # WebSocket 연결 해제 처리 메서드
-    # ==========================================
     def _disconnect(self):
+        """서버와의 WebSocket 연결을 해제합니다."""
         try:
             if self.client.connected:
                 self.client.disconnect()
         except Exception:
             pass
 
-    # ==========================================
-    # WebSocket 클라이언트 종료 메서드
-    # ==========================================
     def stop(self):
-        # 재연결 및 새로운 UI 콜백 실행 방지
+        """WebSocket 클라이언트를 종료하고 재연결을 중단합니다."""
         self._stop_event.set()
 
-        # WebSocket 연결 해제를 별도 스레드에서 실행
         threading.Thread(
             target=self._disconnect,
             name="WebSocketDisconnectThread",
             daemon=True
         ).start()
+        
