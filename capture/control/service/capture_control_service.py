@@ -74,7 +74,7 @@ class CaptureControlService:
         callback_lock = threading.Lock()
         callback_completed = False
 
-        def on_preview_closed(success):
+        def on_preview_closed(success, message=None):
             """미리보기 종료 결과에 따라 촬영 시작을 진행합니다.
 
             Args:

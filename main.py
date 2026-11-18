@@ -274,14 +274,15 @@ class CameraManagerApp:
 
             self.root.after(0, self._finish_close)
 
-        def on_preview_closed(success):
+        def on_preview_closed(success, message=None):
             """미리보기 종료 결과를 처리합니다.
 
             Args:
                 success (bool): 미리보기 종료 성공 여부
+                message (str | None): 미리보기 종료 실패 메시지
             """
             if not success:
-                print("GUI 종료 중 미리보기 세션 종료에 실패했습니다.")
+                print("GUI 종료 중 미리보기 세션 종료에 실패했습니다: {}".format(message or "알 수 없는 오류"))
 
             threading.Thread(
                 target=stop_capture_before_close,
