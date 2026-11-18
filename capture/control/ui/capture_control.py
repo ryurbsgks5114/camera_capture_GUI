@@ -8,12 +8,13 @@ from common.ui.common import create_panel
 from capture.control.service.capture_control_service import CaptureControlService
 
 
-def build(parent, app):
+def build(parent, app, before_start_capture=None):
     """촬영 제어 UI를 생성하고 촬영 제어 Service를 연결합니다.
 
     Args:
         parent (tk.Widget): 촬영 제어 UI를 배치할 부모 위젯
         app (CameraManagerApp): 애플리케이션 인스턴스
+        before_start_capture (Callable, optional): 촬영 시작 전 실행할 작업
 
     Returns:
         tk.Frame: 생성된 촬영 제어 패널
@@ -163,7 +164,8 @@ def build(parent, app):
         schedule_callback=app.root.after,
         on_state_change=update_capture_state,
         on_status_change=update_system_status,
-        on_notification=lambda message, color=None: app.notify(message, color)
+        on_notification=lambda message, color=None: app.notify(message, color),
+        before_start_capture=before_start_capture
     )
 
     def start_capture():

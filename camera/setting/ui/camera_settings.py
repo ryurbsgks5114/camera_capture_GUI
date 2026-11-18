@@ -14,12 +14,14 @@ from camera.setting.service.camera_role_service import assign_camera_role
 from camera.setting.api.camera_api import (get_cameras, get_camera_config, save_camera_config)
 
 
-def build(parent, app):
+def build(parent, app, on_camera_config_changed=None):
     """카메라 설정 UI를 생성합니다.
 
     Args:
         parent (tk.Widget): 카메라 설정 UI를 배치할 부모 위젯
         app (CameraManagerApp): 애플리케이션 인스턴스
+        on_camera_config_changed (callable, optional):
+            카메라 목록 또는 역할 설정 변경 시 호출할 콜백
 
     Returns:
         tuple: 카메라 설정 패널과 입력 잠금 콜백
@@ -28,7 +30,7 @@ def build(parent, app):
         parent,
         "카메라 설정",
         "⟳  목록 새로고침",
-        lambda: refresh_camera_list(),
+        lambda: refresh_camera_list()
     )
     panel.pack(fill="x", pady=5)
 
@@ -48,25 +50,25 @@ def build(parent, app):
         lightcolor="#D8E2EF",
         darkcolor="#D8E2EF",
         relief="solid",
-        arrowsize=12,
+        arrowsize=12
     )
 
     combo_style.map(
         "CameraRole.TCombobox",
         fieldbackground=[
             ("readonly", WHITE),
-            ("disabled", "#F5F7FA"),
+            ("disabled", "#F5F7FA")
         ],
         foreground=[
             ("readonly", TEXT),
-            ("disabled", GRAY),
+            ("disabled", GRAY)
         ],
         selectbackground=[
-            ("readonly", WHITE),
+            ("readonly", WHITE)
         ],
         selectforeground=[
-            ("readonly", TEXT),
-        ],
+            ("readonly", TEXT)
+        ]
     )
 
     is_locked = False
@@ -85,12 +87,14 @@ def build(parent, app):
         if panel.header_button:
             panel.header_button.configure(
                 state="disabled" if is_locked else "normal",
-                cursor="arrow" if is_locked else "hand2",
+                cursor="arrow" if is_locked else "hand2"
             )
 
         for combo in role_combos:
             if combo.winfo_exists():
-                combo.configure(state="disabled" if is_locked else "readonly")
+                combo.configure(
+                    state="disabled" if is_locked else "readonly"
+                )
 
     status_label = tk.Label(
         body,
@@ -98,28 +102,43 @@ def build(parent, app):
         bg=WHITE,
         fg=GREEN,
         anchor="w",
-        font=("Malgun Gothic", 9, "bold"),
+        font=("Malgun Gothic", 9, "bold")
     )
     status_label.pack(fill="x", pady=(0, 7))
 
     list_container = tk.Frame(body, bg=WHITE)
     list_container.pack(fill="x")
 
-    camera_canvas = tk.Canvas(list_container, bg=WHITE, highlightthickness=0, height=140)
+    camera_canvas = tk.Canvas(
+        list_container,
+        bg=WHITE,
+        highlightthickness=0,
+        height=140
+    )
     camera_canvas.pack(side="left", fill="both", expand=True)
 
-    scrollbar = tk.Scrollbar(list_container, orient="vertical", command=camera_canvas.yview)
+    scrollbar = tk.Scrollbar(
+        list_container,
+        orient="vertical",
+        command=camera_canvas.yview
+    )
     scrollbar.pack(side="right", fill="y")
 
     camera_canvas.configure(yscrollcommand=scrollbar.set)
 
     camera_list_frame = tk.Frame(camera_canvas, bg=WHITE)
 
-    camera_window = camera_canvas.create_window((0, 0), window=camera_list_frame, anchor="nw")
+    camera_window = camera_canvas.create_window(
+        (0, 0),
+        window=camera_list_frame,
+        anchor="nw"
+    )
 
     def update_scroll_region(event=None):
         """카메라 목록의 스크롤 영역을 갱신합니다."""
-        camera_canvas.configure(scrollregion=camera_canvas.bbox("all"))
+        camera_canvas.configure(
+            scrollregion=camera_canvas.bbox("all")
+        )
 
     camera_list_frame.bind("<Configure>", update_scroll_region)
 
@@ -127,8 +146,8 @@ def build(parent, app):
         "<Configure>",
         lambda event: camera_canvas.itemconfigure(
             camera_window,
-            width=event.width,
-        ),
+            width=event.width
+        )
     )
 
     def on_mousewheel(event):
@@ -136,7 +155,10 @@ def build(parent, app):
         if not camera_canvas.winfo_exists():
             return "break"
 
-        camera_canvas.yview_scroll(int(-1 * (event.delta / 120)),"units")
+        camera_canvas.yview_scroll(
+            int(-1 * (event.delta / 120)),
+            "units"
+        )
 
         return "break"
 
@@ -153,10 +175,31 @@ def build(parent, app):
 
     camera_config = {
         "side_camera_id": None,
-        "top_camera_id": None,
+        "top_camera_id": None
     }
 
     request_in_progress = False
+
+    def notify_camera_config_changed(cameras, config):
+        """최신 카메라 목록과 역할 설정을 외부에 전달합니다.
+
+        Args:
+            cameras (list): 현재 검색된 카메라 목록
+            config (dict): 현재 카메라 역할 설정
+        """
+        if on_camera_config_changed is None:
+            return
+
+        available_camera_ids = [
+            camera.get("location_id")
+            for camera in cameras
+            if isinstance(camera, dict) and camera.get("location_id")
+        ]
+
+        on_camera_config_changed(
+            config,
+            available_camera_ids
+        )
 
     def change_camera_role(camera_id, selected_role):
         """선택한 카메라의 역할을 변경합니다.
@@ -174,12 +217,16 @@ def build(parent, app):
         if selected_role not in ("Side", "Top", "미지정"):
             return
 
-        updated_config = assign_camera_role(camera_config, camera_id, selected_role)
+        updated_config = assign_camera_role(
+            camera_config,
+            camera_id,
+            selected_role
+        )
 
         update_camera_config(
             updated_config["side_camera_id"],
             updated_config["top_camera_id"],
-            "카메라 역할을 변경했습니다.",
+            "카메라 역할을 변경했습니다."
         )
 
     def render_cameras(cameras):
@@ -200,7 +247,7 @@ def build(parent, app):
                 bg=WHITE,
                 fg=GRAY,
                 anchor="w",
-                font=("Malgun Gothic", 9),
+                font=("Malgun Gothic", 9)
             ).pack(fill="x", pady=8)
 
             update_scroll_region()
@@ -214,7 +261,9 @@ def build(parent, app):
 
             camera_id = camera.get("location_id")
 
-            camera_name = str(camera.get("name") or "이름 없는 카메라")
+            camera_name = str(
+                camera.get("name") or "이름 없는 카메라"
+            )
 
             if camera_id == camera_config.get("side_camera_id"):
                 current_role = "Side"
@@ -228,24 +277,24 @@ def build(parent, app):
                 bg=WHITE,
                 highlightbackground="#D8E2EF",
                 highlightthickness=1,
-                height=52,
+                height=52
             )
             row.pack(fill="x", pady=2)
             row.pack_propagate(False)
 
             content = tk.Frame(
                 row,
-                bg=WHITE,
+                bg=WHITE
             )
             content.pack(
                 fill="both",
                 expand=True,
-                padx=12,
+                padx=12
             )
 
             role_frame = tk.Frame(
                 content,
-                bg=WHITE,
+                bg=WHITE
             )
             role_frame.pack(side="right")
 
@@ -254,7 +303,7 @@ def build(parent, app):
                 text="역할:",
                 bg=WHITE,
                 fg=SUBTEXT,
-                font=("Malgun Gothic", 9),
+                font=("Malgun Gothic", 9)
             ).pack(side="left", padx=(0, 7))
 
             role_combo = ttk.Combobox(
@@ -262,7 +311,7 @@ def build(parent, app):
                 values=("Side", "Top", "미지정"),
                 state="disabled" if is_locked else "readonly",
                 width=10,
-                style="CameraRole.TCombobox",
+                style="CameraRole.TCombobox"
             )
             role_combo.pack(side="left")
 
@@ -275,19 +324,19 @@ def build(parent, app):
                 lambda event, cid=camera_id, combo=role_combo:
                     change_camera_role(
                         cid,
-                        combo.get(),
-                    ),
+                        combo.get()
+                    )
             )
 
             full_camera_text = "카메라 {}  |  {}".format(
                 index,
-                camera_name,
+                camera_name
             )
 
             camera_font = tkfont.Font(
                 family="Malgun Gothic",
                 size=9,
-                weight="bold",
+                weight="bold"
             )
 
             camera_label = tk.Label(
@@ -296,16 +345,21 @@ def build(parent, app):
                 bg=WHITE,
                 fg=TEXT,
                 anchor="w",
-                font=camera_font,
+                font=camera_font
             )
             camera_label.pack(
                 side="left",
                 fill="x",
                 expand=True,
-                padx=(0, 12),
+                padx=(0, 12)
             )
 
-            def update_camera_name(event, label=camera_label, full_text=full_camera_text, font=camera_font):
+            def update_camera_name(
+                event,
+                label=camera_label,
+                full_text=full_camera_text,
+                font=camera_font
+            ):
                 """위젯 너비에 맞춰 카메라 이름을 표시합니다.
 
                 Args:
@@ -369,7 +423,10 @@ def build(parent, app):
             return
 
         if error_message is not None:
-            status_label.configure(text="카메라 설정 처리에 실패했습니다.", fg=RED)
+            status_label.configure(
+                text="카메라 설정 처리에 실패했습니다.",
+                fg=RED
+            )
 
             app.notify(error_message, RED)
 
@@ -377,12 +434,22 @@ def build(parent, app):
 
         camera_config = config or {
             "side_camera_id": None,
-            "top_camera_id": None,
+            "top_camera_id": None
         }
 
-        status_label.configure(text="검색된 카메라: {}대".format(len(cameras)), fg=GREEN)
+        cameras = cameras or []
+
+        status_label.configure(
+            text="검색된 카메라: {}대".format(len(cameras)),
+            fg=GREEN
+        )
 
         render_cameras(cameras)
+
+        notify_camera_config_changed(
+            cameras,
+            camera_config
+        )
 
         if notice:
             app.notify(notice, GREEN)
@@ -399,7 +466,10 @@ def build(parent, app):
 
         request_in_progress = True
 
-        status_label.configure(text="카메라 목록을 확인하고 있습니다...", fg=BLUE)
+        status_label.configure(
+            text="카메라 목록을 확인하고 있습니다...",
+            fg=BLUE
+        )
 
         def worker():
             try:
@@ -418,8 +488,8 @@ def build(parent, app):
                     lambda: finish_request(
                         cameras,
                         config,
-                        error_message,
-                    ),
+                        error_message
+                    )
                 )
             except tk.TclError:
                 pass
@@ -427,7 +497,7 @@ def build(parent, app):
         threading.Thread(
             target=worker,
             name="CameraListRequestThread",
-            daemon=True,
+            daemon=True
         ).start()
 
     def update_camera_config(side_camera_id, top_camera_id, notice):
@@ -448,15 +518,22 @@ def build(parent, app):
 
         request_in_progress = True
 
-        status_label.configure(text="카메라 역할을 변경하고 있습니다...", fg=BLUE)
+        status_label.configure(
+            text="카메라 역할을 변경하고 있습니다...",
+            fg=BLUE
+        )
 
         def worker():
             try:
-                save_camera_config(side_camera_id, top_camera_id)
+                save_camera_config(
+                    side_camera_id,
+                    top_camera_id
+                )
 
                 cameras = get_cameras()
                 config = get_camera_config()
                 error_message = None
+
             except Exception as error:
                 cameras = []
                 config = None
@@ -469,8 +546,8 @@ def build(parent, app):
                         cameras,
                         config,
                         error_message,
-                        notice if error_message is None else None,
-                    ),
+                        notice if error_message is None else None
+                    )
                 )
             except tk.TclError:
                 pass
@@ -478,7 +555,7 @@ def build(parent, app):
         threading.Thread(
             target=worker,
             name="CameraConfigRequestThread",
-            daemon=True,
+            daemon=True
         ).start()
 
     app.root.after(100, refresh_camera_list)

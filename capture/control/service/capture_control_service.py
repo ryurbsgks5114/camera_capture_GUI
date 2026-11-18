@@ -10,6 +10,7 @@ from capture.control.api.capture_api import (
     stop_capture as request_stop_capture
 )
 
+
 class CaptureControlService:
     """촬영 시작 및 중지 요청과 처리 흐름을 관리합니다.
 
@@ -18,12 +19,15 @@ class CaptureControlService:
         on_state_change (Callable): 촬영 상태 변경 콜백
         on_status_change (Callable): 시스템 상태 변경 콜백
         on_notification (Callable): 알림 표시 콜백
+        before_start_capture (Callable, optional): 촬영 시작 전 실행할 작업
     """
-    def __init__(self, schedule_callback, on_state_change, on_status_change, on_notification):
+
+    def __init__(self, schedule_callback, on_state_change, on_status_change, on_notification, before_start_capture=None):
         self._schedule_callback = schedule_callback
         self._on_state_change = on_state_change
         self._on_status_change = on_status_change
         self._on_notification = on_notification
+        self._before_start_capture = before_start_capture
 
         self._capture_state = "idle"
         self._state_lock = threading.Lock()
@@ -60,13 +64,43 @@ class CaptureControlService:
 
         payload = self._build_capture_payload(settings)
 
-        self._notify("서버에 촬영 시작 요청을 보내는 중입니다...", BLUE)
+        if self._before_start_capture is None:
+            self._start_request(payload)
 
-        threading.Thread(
-            target=self._send_start_request,
-            args=(payload,),
-            daemon=True
-        ).start()
+            return
+
+        self._notify("미리보기 종료 후 촬영을 시작합니다...", BLUE)
+
+        callback_lock = threading.Lock()
+        callback_completed = False
+
+        def on_preview_closed(success):
+            """미리보기 종료 결과에 따라 촬영 시작을 진행합니다.
+
+            Args:
+                success (bool): 미리보기 종료 성공 여부
+            """
+            nonlocal callback_completed
+
+            with callback_lock:
+                if callback_completed:
+                    return
+
+                callback_completed = True
+
+            if not success:
+                self._change_state("idle")
+                self._notify("미리보기를 종료하지 못해 촬영을 시작하지 않았습니다.", RED)
+
+                return
+
+            self._start_request(payload)
+
+        try:
+            self._before_start_capture(on_preview_closed)
+        except Exception as error:
+            self._change_state("idle")
+            self._notify("촬영 시작 전 미리보기 정리 중 오류가 발생했습니다: {}".format(error), RED)
 
     def stop_capture(self):
         """서버에 촬영 중지 요청을 전송합니다."""
@@ -82,6 +116,20 @@ class CaptureControlService:
 
         threading.Thread(
             target=self._send_stop_request,
+            daemon=True
+        ).start()
+
+    def _start_request(self, payload):
+        """촬영 시작 API 요청을 백그라운드에서 실행합니다.
+
+        Args:
+            payload (dict): 서버에 전달할 촬영 설정
+        """
+        self._notify("서버에 촬영 시작 요청을 보내는 중입니다...", BLUE)
+
+        threading.Thread(
+            target=self._send_start_request,
+            args=(payload,),
             daemon=True
         ).start()
 
@@ -184,7 +232,7 @@ class CaptureControlService:
         else:
             status_updates["server_status"] = "연결 성공"
 
-            if ("FTP" in message.upper()):
+            if "FTP" in message.upper():
                 status_updates["ftp_status"] = "연결 실패"
 
         if status_updates:

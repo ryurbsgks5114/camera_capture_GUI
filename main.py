@@ -19,6 +19,7 @@ from config import (
 )
 
 from camera.preview.ui import camera_preview
+from camera.preview.ui.camera_preview_manager import CameraPreviewManager
 from camera.setting.ui import camera_settings
 from capture.control.ui import capture_control
 from capture.recent_photos.ui import recent_photos
@@ -30,6 +31,7 @@ from storage.mode.ui import storage_mode
 from storage.path.ui import save_path
 from system.status.ui import system_status
 
+from camera.preview.service.camera_preview_service import CameraPreviewService
 from common.service.capture_ui_lock_manager import CaptureUiLockManager
 from storage.path.service.ftp_client import test_ftp_connection
 from storage.path.service.path_settings_storage import load_path_settings
@@ -48,22 +50,41 @@ class CameraManagerApp:
         self.notify = lambda message, color=None: None
 
         self.capture_ui_lock_manager = CaptureUiLockManager()
+        self.camera_preview_manager = None
 
         configure_style()
         build_header(root)
         _, left, center, right = build_main(root)
 
         system_status.build(left, self)
-        _, camera_settings_lock = camera_settings.build(left, self)
+
+        camera_preview_ui = camera_preview.build(center, self)
+        _, camera_settings_lock = camera_settings.build(
+            left,
+            self,
+            on_camera_config_changed=camera_preview_ui.update_camera_roles
+        )
 
         _, storage_mode_lock = storage_mode.build(center, self)
         _, save_path_lock = save_path.build(center, self)
-        camera_preview.build(center, self)
         _, capture_settings_lock = capture_settings.build(center, self)
-        capture_control.build(center, self)
+
+        capture_control.build(
+            center,
+            self,
+            before_start_capture=self._before_capture_start
+        )
 
         recent_photos.build(right, self)
         notifications.build(right, self)
+
+        preview_service = CameraPreviewService(schedule_callback=self.root.after)
+        self.camera_preview_manager = CameraPreviewManager(
+            parent=self.root,
+            preview_ui=camera_preview_ui,
+            preview_service=preview_service,
+            on_error=lambda message: self.notify(message, RED)
+        )
 
         self.capture_ui_lock_manager.register("camera_settings", camera_settings_lock)
         self.capture_ui_lock_manager.register("storage_mode", storage_mode_lock)
@@ -79,6 +100,14 @@ class CameraManagerApp:
 
         self._check_initial_server_connection()
         self._check_initial_ftp_connection()
+
+    def _before_capture_start(self, on_complete):
+        """촬영 시작 전에 실행 중인 미리보기를 모두 종료합니다.
+
+        Args:
+            on_complete (Callable): 미리보기 종료 결과를 전달할 콜백
+        """
+        self.camera_preview_manager.close_all(on_complete=on_complete)
 
     def _check_initial_server_connection(self):
         """애플리케이션 시작 시 서버 연결 상태를 확인합니다."""
@@ -226,7 +255,7 @@ class CameraManagerApp:
             )
 
     def close(self):
-        """애플리케이션 종료 및 서버 촬영 중지 처리를 수행합니다."""
+        """미리보기와 촬영을 정리한 뒤 애플리케이션을 종료합니다."""
         if getattr(self, "_closing", False):
             return
 
@@ -234,6 +263,7 @@ class CameraManagerApp:
         self.root.protocol("WM_DELETE_WINDOW", lambda: None)
 
         def stop_capture_before_close():
+            """서버 촬영 상태를 확인하고 실행 중인 촬영을 중지합니다."""
             try:
                 server_status = get_server_status()
 
@@ -242,13 +272,37 @@ class CameraManagerApp:
             except Exception as error:
                 print("GUI 종료 중 촬영 상태 확인 또는 중지 요청 실패: {}".format(error))
 
-        threading.Thread(
-            target=stop_capture_before_close,
-            name="CaptureStopBeforeCloseThread",
-            daemon=False
-        ).start()
+            self.root.after(0, self._finish_close)
 
-        self.websocket_client.stop()
+        def on_preview_closed(success):
+            """미리보기 종료 결과를 처리합니다.
+
+            Args:
+                success (bool): 미리보기 종료 성공 여부
+            """
+            if not success:
+                print("GUI 종료 중 미리보기 세션 종료에 실패했습니다.")
+
+            threading.Thread(
+                target=stop_capture_before_close,
+                name="CaptureStopBeforeCloseThread",
+                daemon=False
+            ).start()
+
+        try:
+            self.camera_preview_manager.close_all(on_complete=on_preview_closed)
+        except Exception as error:
+            print("GUI 종료 중 미리보기 정리 실패: {}".format(error))
+
+            on_preview_closed(False)
+
+    def _finish_close(self):
+        """서버 정리 작업이 끝난 뒤 WebSocket과 GUI를 종료합니다."""
+        try:
+            self.websocket_client.stop()
+        except Exception as error:
+            print("GUI 종료 중 WebSocket 연결 종료 실패: {}".format(error))
+    
         self.root.destroy()
 
     @staticmethod
