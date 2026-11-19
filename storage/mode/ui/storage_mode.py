@@ -30,7 +30,7 @@ def build(parent, app):
         app.notify("저장 방식이 '{}'으로 설정되었습니다.".format(options.get(mode, "")))
 
     panel = create_panel(parent, "저장 방식")
-    panel.pack(fill="x", pady=5)
+    panel.pack(fill="x", pady=(0, 5))
 
     options_frame = tk.Frame(panel, bg=WHITE)
     options_frame.pack(fill="x", padx=18, pady=(5, 7))

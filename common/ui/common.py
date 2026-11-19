@@ -43,7 +43,7 @@ def create_panel(parent, title, header_button_text=None, header_button_command=N
     )
 
     header = tk.Frame(panel, bg=WHITE)
-    header.pack(fill="x", padx=18, pady=(12, 8))
+    header.pack(fill="x", padx=12, pady=(7, 4))
 
     tk.Label(
         header,
@@ -67,7 +67,7 @@ def create_panel(parent, title, header_button_text=None, header_button_command=N
         panel,
         bg=BORDER,
         height=1
-    ).pack(fill="x", padx=18)
+    ).pack(fill="x", padx=12)
 
     return panel
 
@@ -137,4 +137,3 @@ def create_field(parent, label, variable, button_text=None, command=None):
         entry.action_button = action_button
 
     return entry
-    

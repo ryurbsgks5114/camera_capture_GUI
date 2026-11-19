@@ -16,7 +16,7 @@ def build_header(root):
     Args:
         root (tk.Tk): 애플리케이션 최상위 윈도우
     """
-    header = tk.Frame(root, bg=WHITE, height=70)
+    header = tk.Frame(root, bg=WHITE, height=60)
     header.pack(fill="x")
     header.pack_propagate(False)
 

@@ -66,9 +66,9 @@ class CameraManagerApp:
         )
 
         _, storage_mode_lock = storage_mode.build(left, self)
-        _, save_path_lock = save_path.build(center, self)
-        _, capture_settings_lock = capture_settings.build(center, self)
+        _, save_path_lock = save_path.build(left, self)
 
+        _, capture_settings_lock = capture_settings.build(center, self)
         capture_control.build(
             center,
             self,
@@ -76,6 +76,7 @@ class CameraManagerApp:
         )
 
         notifications.build(center, self)
+        
         recent_photos.build(right, self)
 
         preview_service = CameraPreviewService(schedule_callback=self.root.after)

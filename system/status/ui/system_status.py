@@ -19,16 +19,7 @@ def build(parent, app):
         tk.Frame: 생성된 시스템 상태 패널
     """
     panel = create_panel(parent, "시스템 상태")
-
-    # 시스템 상태 패널의 세로 여백 축소
     panel.pack(fill="x", pady=(0, 5))
-
-    # 공통 패널 헤더 여백 축소
-    header = panel.winfo_children()[0]
-    header.pack_configure(
-        padx=12,
-        pady=(7, 4)
-    )
 
     # 상태 항목 표시 영역
     app.system_body = tk.Frame(

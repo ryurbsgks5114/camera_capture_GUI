@@ -21,7 +21,7 @@ def build(parent, app, before_start_capture=None):
     """
     panel = create_panel(parent, "촬영 제어")
     panel.configure(height=120)
-    panel.pack(fill="both", expand=False, pady=5)
+    panel.pack(fill="both", expand=False, pady=(0, 5))
     panel.pack_propagate(False)
 
     body = tk.Frame(panel, bg=WHITE)

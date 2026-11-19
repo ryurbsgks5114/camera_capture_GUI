@@ -27,7 +27,7 @@ def build_photo_preview(parent, view_name):
         dict: 이미지 및 원본 이미지 관리 위젯
     """
     section = tk.Frame(parent, bg="#FFFFFF")
-    section.pack(fill="x", expand=False, pady=(0, 10))
+    section.pack(fill="x", expand=False, pady=(0, 5))
 
     tk.Label(
         section,

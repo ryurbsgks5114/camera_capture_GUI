@@ -39,7 +39,7 @@ def build(parent, app):
         open_ftp_browser(app, FTP_HOST, FTP_PORT, FTP_USER, FTP_PASSWORD)
 
     panel = create_panel(parent, "저장 경로 설정")
-    panel.pack(fill="x", pady=5)
+    panel.pack(fill="x", pady=(0, 5))
 
     local_entry = create_field(
         panel,

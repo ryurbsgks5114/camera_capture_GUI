@@ -32,10 +32,10 @@ def build(parent, app, on_camera_config_changed=None):
         "⟳  목록 새로고침",
         lambda: refresh_camera_list()
     )
-    panel.pack(fill="x", pady=5)
+    panel.pack(fill="x", pady=(0, 5))
 
     body = tk.Frame(panel, bg=WHITE)
-    body.pack(fill="x", padx=20, pady=10)
+    body.pack(fill="x", padx=20, pady=7)
 
     combo_style = ttk.Style()
 
@@ -113,7 +113,7 @@ def build(parent, app, on_camera_config_changed=None):
         list_container,
         bg=WHITE,
         highlightthickness=0,
-        height=140
+        height=120
     )
     camera_canvas.pack(side="left", fill="both", expand=True)
 
