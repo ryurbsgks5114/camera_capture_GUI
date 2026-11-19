@@ -9,6 +9,9 @@ from config import GRAY, TEXT, WHITE
 from common.ui.common import create_panel
 
 
+NOTIFICATION_PANEL_HEIGHT = 250
+
+
 def build(parent, app):
     """알림 UI를 생성하고 애플리케이션에 알림 출력 기능을 등록합니다.
 
@@ -17,7 +20,7 @@ def build(parent, app):
         app (CameraManagerApp): 애플리케이션 인스턴스
     """
     panel = create_panel(parent, "알림")
-    panel.configure(height=392)
+    panel.configure(height=NOTIFICATION_PANEL_HEIGHT)
     panel.pack(fill="both", expand=False, pady=(0, 5))
     panel.pack_propagate(False)
 
@@ -62,7 +65,6 @@ def build(parent, app):
         Returns:
             str | None: 이벤트 처리를 중단할 경우 "break"
         """
-        # 마우스 포인터가 알림 영역 안에 있는지 확인
         left = canvas.winfo_rootx()
         top = canvas.winfo_rooty()
         right = left + canvas.winfo_width()

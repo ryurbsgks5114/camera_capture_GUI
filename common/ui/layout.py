@@ -96,8 +96,6 @@ def build_main(root):
     viewport.grid_columnconfigure(0, weight=1)
 
     canvas.grid(row=0, column=0, sticky="nsew")
-    vertical_scrollbar.grid(row=0, column=1, sticky="ns")
-    horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
 
     main = tk.Frame(canvas, bg=BG)
 
@@ -108,7 +106,7 @@ def build_main(root):
     )
 
     def update_content_size(event=None):
-        """내부 UI와 캔버스 크기를 기준으로 스크롤 영역을 갱신합니다.
+        """콘텐츠 크기에 따라 스크롤 영역과 스크롤바 표시를 갱신합니다.
 
         Args:
             event (tk.Event, optional): 위젯 크기 변경 이벤트
@@ -116,18 +114,63 @@ def build_main(root):
         if not canvas.winfo_exists() or not main.winfo_exists():
             return
 
+        viewport_width = viewport.winfo_width()
+        viewport_height = viewport.winfo_height()
+
+        if viewport_width <= 1 or viewport_height <= 1:
+            return
+
         required_width = main.winfo_reqwidth()
         required_height = main.winfo_reqheight()
 
-        content_width = max(
-            canvas.winfo_width(),
-            required_width
-        )
+        horizontal_width = horizontal_scrollbar.winfo_reqwidth()
+        vertical_width = vertical_scrollbar.winfo_reqwidth()
+        horizontal_height = horizontal_scrollbar.winfo_reqheight()
+        vertical_height = vertical_scrollbar.winfo_reqheight()
 
-        content_height = max(
-            canvas.winfo_height(),
-            required_height
-        )
+        show_horizontal = False
+        show_vertical = False
+
+        for _ in range(3):
+            available_width = viewport_width
+            available_height = viewport_height
+
+            if show_vertical:
+                available_width -= vertical_width
+
+            if show_horizontal:
+                available_height -= horizontal_height
+
+            next_horizontal = required_width > available_width
+            next_vertical = required_height > available_height
+
+            if (next_horizontal == show_horizontal and next_vertical == show_vertical):
+                break
+
+            show_horizontal = next_horizontal
+            show_vertical = next_vertical
+
+        if show_vertical:
+            vertical_scrollbar.grid(row=0, column=1, sticky="ns")
+        else:
+            vertical_scrollbar.grid_remove()
+
+        if show_horizontal:
+            horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
+        else:
+            horizontal_scrollbar.grid_remove()
+
+        available_width = viewport_width
+        available_height = viewport_height
+
+        if show_vertical:
+            available_width -= vertical_width
+
+        if show_horizontal:
+            available_height -= horizontal_height
+
+        content_width = max(required_width, available_width)
+        content_height = max(required_height, available_height)
 
         canvas.itemconfigure(
             main_window,
@@ -139,10 +182,11 @@ def build_main(root):
 
     main.bind("<Configure>", update_content_size)
     canvas.bind("<Configure>", update_content_size)
+    viewport.bind("<Configure>", update_content_size)
 
-    main.grid_columnconfigure(0, weight=30)
-    main.grid_columnconfigure(1, weight=36)
-    main.grid_columnconfigure(2, weight=34)
+    main.grid_columnconfigure(0, minsize=300, weight=1)
+    main.grid_columnconfigure(1, minsize=400, weight=1)
+    main.grid_columnconfigure(2, minsize=380, weight=1)
     main.grid_rowconfigure(0, weight=1)
 
     left = tk.Frame(main, bg=BG)
@@ -170,4 +214,3 @@ def build_main(root):
     )
 
     return main, left, center, right
-    

@@ -58,14 +58,14 @@ class CameraManagerApp:
 
         system_status.build(left, self)
 
-        camera_preview_ui = camera_preview.build(center, self)
+        camera_preview_ui = camera_preview.build(left, self)
         _, camera_settings_lock = camera_settings.build(
             left,
             self,
             on_camera_config_changed=camera_preview_ui.update_camera_roles
         )
 
-        _, storage_mode_lock = storage_mode.build(center, self)
+        _, storage_mode_lock = storage_mode.build(left, self)
         _, save_path_lock = save_path.build(center, self)
         _, capture_settings_lock = capture_settings.build(center, self)
 
@@ -75,8 +75,8 @@ class CameraManagerApp:
             before_start_capture=self._before_capture_start
         )
 
+        notifications.build(center, self)
         recent_photos.build(right, self)
-        notifications.build(right, self)
 
         preview_service = CameraPreviewService(schedule_callback=self.root.after)
         self.camera_preview_manager = CameraPreviewManager(
@@ -303,7 +303,7 @@ class CameraManagerApp:
             self.websocket_client.stop()
         except Exception as error:
             print("GUI 종료 중 WebSocket 연결 종료 실패: {}".format(error))
-    
+
         self.root.destroy()
 
     @staticmethod

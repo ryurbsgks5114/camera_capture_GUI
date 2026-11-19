@@ -4,8 +4,6 @@ import tkinter as tk
 from pathlib import Path
 from PIL import ImageTk
 
-from config import SUBTEXT
-
 from common.ui.common import create_panel
 
 from capture.recent_photos.service.photo_preview_service import PhotoPreviewService
@@ -19,48 +17,36 @@ PLACEHOLDER_PATH = (
 
 
 def build_photo_preview(parent, view_name):
-    """개별 촬영 사진 미리보기 카드를 생성합니다.
+    """개별 촬영 사진 미리보기 영역을 생성합니다.
 
     Args:
-        parent: 미리보기 카드가 배치될 부모 위젯
+        parent: 미리보기 영역이 배치될 부모 위젯
         view_name (str): 표시할 카메라 뷰 이름
 
     Returns:
-        dict: 이미지 및 파일명 표시 위젯
+        dict: 이미지 및 원본 이미지 관리 위젯
     """
-    card = tk.Frame(
-        parent,
-        bg="#FFFFFF",
-        highlightbackground="#D8E2EF",
-        highlightthickness=1,
-        width=300,
-        height=330
-    )
-    card.pack(side="left", fill="y", expand=True, padx=5, pady=6)
-    card.pack_propagate(False)
+    section = tk.Frame(parent, bg="#FFFFFF")
+    section.pack(fill="x", expand=False, pady=(0, 10))
 
     tk.Label(
-        card,
+        section,
         text=view_name,
         bg="#FFFFFF",
         fg="#183B63",
         font=("Malgun Gothic", 10, "bold"),
         anchor="w"
-    ).pack(
-        fill="x",
-        padx=10,
-        pady=(8, 6)
-    )
+    ).pack(fill="x", padx=4, pady=(4, 6))
 
     photo_area = tk.Frame(
-        card,
+        section,
         bg="#F7FAFF",
         highlightbackground="#CFDBEB",
         highlightthickness=1,
         width=250,
         height=250
     )
-    photo_area.pack(anchor="center", padx=5, pady=(0, 6))
+    photo_area.pack(anchor="center", padx=4)
     photo_area.pack_propagate(False)
 
     placeholder_image = PhotoPreviewService.load_image(PLACEHOLDER_PATH)
@@ -68,27 +54,19 @@ def build_photo_preview(parent, view_name):
 
     placeholder_photo = ImageTk.PhotoImage(placeholder_image)
 
-    placeholder_label = tk.Label(
+    image_label = tk.Label(
         photo_area,
         image=placeholder_photo,
-        bg="#F7FAFF"
+        bg="#F7FAFF",
+        cursor="hand2"
     )
-    placeholder_label.pack(expand=True, pady=(12, 0))
-    placeholder_label.image = placeholder_photo
-
-    filename_label = tk.Label(
-        card,
-        text="파일명: ",
-        bg="#FFFFFF",
-        fg=SUBTEXT,
-        font=("Malgun Gothic", 8),
-        anchor="w"
-    )
-    filename_label.pack(fill="x", padx=8, pady=(0, 6))
+    image_label.pack(expand=True)
+    image_label.image = placeholder_photo
 
     return {
-        "image_label": placeholder_label,
-        "filename_label": filename_label
+        "image_label": image_label,
+        "original_image": None,
+        "filename": None
     }
 
 
@@ -111,7 +89,6 @@ def build(parent, app):
     }
 
     for view, widgets in app.photo_preview_widgets.items():
-        widgets["image_label"].configure(cursor="hand2")
         widgets["image_label"].bind(
             "<Button-1>",
             lambda event, selected_view=view: open_photo_large(
@@ -147,8 +124,6 @@ def _update_photo_image(app, view, image, filename):
         image_label = widgets["image_label"]
         image_label.configure(image=photo)
         image_label.image = photo
-
-        widgets["filename_label"].configure(text="파일명: {}".format(filename))
     except (OSError, ValueError) as error:
         print("최근 촬영 사진 표시 실패:", error)
 
