@@ -1,3 +1,4 @@
+import tkinter as tk
 
 from tkinter import filedialog
 
@@ -41,8 +42,11 @@ def build(parent, app):
     panel = create_panel(parent, "저장 경로 설정")
     panel.pack(fill="x", pady=(0, 5))
 
+    content = tk.Frame(panel, bg=WHITE)
+    content.pack(fill="x", pady=10)
+
     local_entry = create_field(
-        panel,
+        content,
         "로컬 저장 경로",
         app.state.local_path,
         "📁 선택",
@@ -51,7 +55,7 @@ def build(parent, app):
     local_entry.configure(state="readonly")
 
     ftp_entry = create_field(
-        panel,
+        content,
         "FTP 저장 경로",
         app.state.ftp_path,
         "📁 선택",

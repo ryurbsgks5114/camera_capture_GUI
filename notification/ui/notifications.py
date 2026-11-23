@@ -21,7 +21,7 @@ def build(parent, app):
     """
     panel = create_panel(parent, "알림")
     panel.configure(height=NOTIFICATION_PANEL_HEIGHT)
-    panel.pack(fill="both", expand=True, pady=(0, 5))
+    panel.pack(fill="both", expand=False, pady=(0, 5))
     panel.pack_propagate(False)
 
     # 알림 목록 표시 영역
