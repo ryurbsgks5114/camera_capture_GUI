@@ -9,10 +9,7 @@ from config import GRAY, TEXT, WHITE
 from common.ui.common import create_panel
 
 
-NOTIFICATION_PANEL_HEIGHT = 250
-
-
-def build(parent, app):
+def build(parent, app, bottom_reference):
     """알림 UI를 생성하고 애플리케이션에 알림 출력 기능을 등록합니다.
 
     Args:
@@ -20,9 +17,24 @@ def build(parent, app):
         app (CameraManagerApp): 애플리케이션 인스턴스
     """
     panel = create_panel(parent, "알림")
-    panel.configure(height=NOTIFICATION_PANEL_HEIGHT)
-    panel.pack(fill="both", expand=False, pady=(0, 5))
+    panel.pack(fill="x", expand=False, pady=(0, 5))
     panel.pack_propagate(False)
+
+    def align_panel_height():
+        """저장 경로 설정 패널의 하단에 맞춰 알림 높이를 설정합니다."""
+        parent.update_idletasks()
+
+        reference_bottom = (bottom_reference.winfo_rooty() + bottom_reference.winfo_height())
+
+        panel_top = panel.winfo_rooty()
+        target_height = reference_bottom - panel_top
+
+        if target_height <= 0:
+            return
+
+        panel.configure(height=target_height)
+
+    app.root.after_idle(align_panel_height)
 
     # 알림 목록 표시 영역
     area = tk.Frame(panel, bg=WHITE)

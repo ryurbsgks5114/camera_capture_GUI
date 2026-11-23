@@ -184,9 +184,9 @@ def build_main(root):
     canvas.bind("<Configure>", update_content_size)
     viewport.bind("<Configure>", update_content_size)
 
-    main.grid_columnconfigure(0, minsize=300, weight=1)
-    main.grid_columnconfigure(1, minsize=400, weight=1)
-    main.grid_columnconfigure(2, minsize=380, weight=1)
+    main.grid_columnconfigure(0, minsize=260, weight=1)
+    main.grid_columnconfigure(1, minsize=360, weight=1)
+    main.grid_columnconfigure(2, minsize=340, weight=1)
     main.grid_rowconfigure(0, weight=1)
 
     left = tk.Frame(main, bg=BG)

@@ -66,7 +66,7 @@ class CameraManagerApp:
         )
 
         _, storage_mode_lock = storage_mode.build(left, self)
-        _, save_path_lock = save_path.build(left, self)
+        save_path_panel, save_path_lock = save_path.build(left, self)
 
         _, capture_settings_lock = capture_settings.build(center, self)
         capture_control.build(
@@ -75,7 +75,7 @@ class CameraManagerApp:
             before_start_capture=self._before_capture_start
         )
 
-        notifications.build(center, self)
+        notifications.build(center, self, bottom_reference=save_path_panel)
         
         recent_photos.build(right, self)
 
